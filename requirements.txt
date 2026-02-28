@@ -1,0 +1,24 @@
+# requirements.txt
+# Dependencias del proyecto Metal Travel Tracker
+# Instalar con: pip install -r requirements.txt
+
+# HTTP client asíncrono (para llamadas a APIs externas)
+httpx[asyncio]==0.27.0
+
+# AWS SDK
+boto3==1.34.69
+botocore==1.34.69
+
+# Tipos y dataclasses mejorados (solo para desarrollo, no runtime)
+# No se necesita en Lambda ya que usamos Python 3.12 nativo
+
+# Para parseo de datos
+python-dateutil==2.9.0
+
+# Para tests
+pytest==8.1.1
+pytest-asyncio==0.23.6
+moto[dynamodb,s3,sns,ses]==5.0.5
+
+# Linting
+ruff==0.4.1

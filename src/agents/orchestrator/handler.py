@@ -1,0 +1,381 @@
+"""
+agents/orchestrator/handler.py
+-------------------------------
+El Orchestrator Agent es el cerebro del sistema.
+Es invocado por AWS Step Functions una vez al día y coordina a todos los demás agentes.
+
+Responsabilidades:
+  1. Decidir qué fuentes de conciertos consultar hoy
+  2. Deduplicar y validar conciertos encontrados
+  3. Priorizar conciertos para búsqueda de vuelos (los más próximos primero)
+  4. Invocar al Flight Agent para conciertos sin vuelo buscado
+  5. Invocar al Hotel Agent para los mejores deals de vuelos
+  6. Invocar al Reporter Agent para generar y enviar el reporte diario
+
+El Orchestrator usa el LLM para:
+  - Clasificar si una banda es de metal cuando hay dudas
+  - Priorizar qué eventos son más relevantes para notificar
+  - Decidir si el día de hoy amerita notificación (evitar spam)
+"""
+
+import json
+import logging
+import os
+from datetime import date, timedelta
+
+import boto3
+
+from src.models.concert import Concert, Country, MetalGenre, TravelDeal
+from src.plugins.bandsintown import BandsintownPlugin
+from src.plugins.eventbrite import EventbritePlugin
+from src.plugins.metal_archives import MetalArchivesPlugin
+from src.plugins.songkick import SongkickPlugin
+from src.shared.bedrock_client import BedrockClient
+from src.shared.dynamodb_client import DynamoDBClient
+from src.shared.notifications import NotificationService
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Configuración de países y géneros desde variables de entorno
+TARGET_COUNTRIES = [
+    Country.COLOMBIA,
+    Country.CHILE,
+    Country.BRAZIL,
+    Country.UNITED_STATES,
+    Country.MEXICO,
+    Country.FINLAND,
+    Country.SPAIN,
+]
+
+TARGET_GENRES = [
+    MetalGenre.BLACK_METAL,
+    MetalGenre.DEATH_METAL,
+    MetalGenre.WAR_METAL,
+    MetalGenre.HEAVY_METAL,
+    MetalGenre.THRASH_METAL,
+]
+
+# Buscar conciertos hasta 9 meses hacia adelante
+SEARCH_DAYS_AHEAD = 270
+
+# Solo buscar vuelos si el concierto es en al menos 14 días
+MIN_DAYS_FOR_FLIGHT_SEARCH = 14
+
+
+def lambda_handler(event: dict, context) -> dict:
+    """
+    Entry point del Orchestrator Agent.
+    Invocado por Step Functions diariamente.
+    """
+    logger.info("Orchestrator Agent iniciado")
+    logger.info(f"Evento: {json.dumps(event)}")
+
+    bedrock      = BedrockClient()
+    dynamodb     = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
+    lambda_client = boto3.client("lambda")
+
+    results = {
+        "date":              date.today().isoformat(),
+        "concerts_found":    0,
+        "concerts_new":      0,
+        "flights_searched":  0,
+        "deals_found":       0,
+        "notified":          False,
+    }
+
+    # -------------------------------------------------------------------
+    # PASO 1: Recolectar conciertos de todas las fuentes (Tier 1 y 2)
+    # -------------------------------------------------------------------
+    logger.info("Paso 1: Recolectando conciertos de fuentes externas")
+
+    import asyncio
+    all_concerts = asyncio.run(
+        collect_all_concerts(TARGET_COUNTRIES, TARGET_GENRES)
+    )
+    results["concerts_found"] = len(all_concerts)
+    logger.info(f"Total conciertos recolectados (antes de deduplicar): {len(all_concerts)}")
+
+    # -------------------------------------------------------------------
+    # PASO 2: Filtrar, clasificar y deduplicar
+    # -------------------------------------------------------------------
+    logger.info("Paso 2: Clasificando y filtrando conciertos de metal")
+
+    metal_concerts = classify_and_filter(all_concerts, bedrock)
+    logger.info(f"Conciertos de metal después del filtro: {len(metal_concerts)}")
+
+    # Guardar nuevos conciertos en DynamoDB
+    new_count = 0
+    for concert in metal_concerts:
+        if not dynamodb.exists(concert.unique_key):
+            if dynamodb.save_concert(concert):
+                new_count += 1
+
+    results["concerts_new"] = new_count
+    logger.info(f"Conciertos nuevos guardados: {new_count}")
+
+    # -------------------------------------------------------------------
+    # PASO 3: Buscar vuelos para conciertos sin búsqueda previa
+    # -------------------------------------------------------------------
+    logger.info("Paso 3: Buscando vuelos para conciertos pendientes")
+
+    concerts_needing_flights = dynamodb.get_concerts_needing_flight_search(
+        days_ahead=SEARCH_DAYS_AHEAD
+    )
+    logger.info(f"Conciertos que necesitan búsqueda de vuelos: {len(concerts_needing_flights)}")
+
+    flight_deals = []
+    for concert_item in concerts_needing_flights[:20]:  # Máximo 20 por día para no saturar APIs
+        try:
+            flight_result = lambda_client.invoke(
+                FunctionName=os.environ["FLIGHT_AGENT_FUNCTION_NAME"],
+                InvocationType="RequestResponse",
+                Payload=json.dumps({
+                    "concert_country":  concert_item.get("country"),
+                    "event_date":       concert_item.get("event_date"),
+                    "concert_ref":      concert_item.get("sk"),
+                }),
+            )
+            flight_data = json.loads(flight_result["Payload"].read())
+            if flight_data.get("best_deal"):
+                flight_deals.append(flight_data["best_deal"])
+                results["flights_searched"] += 1
+
+            dynamodb.mark_flight_searched(concert_item.get("sk", ""))
+
+        except Exception as e:
+            logger.error(f"Error invocando Flight Agent: {e}")
+
+    results["deals_found"] = len(flight_deals)
+
+    # -------------------------------------------------------------------
+    # PASO 4: Decidir si notificar hoy
+    # -------------------------------------------------------------------
+    logger.info("Paso 4: Evaluando si hay algo para notificar")
+
+    should_notify = decide_should_notify(
+        new_concerts=new_count,
+        flight_deals=flight_deals,
+        bedrock=bedrock,
+    )
+
+    if should_notify:
+        logger.info("Paso 5: Invocando Reporter Agent para generar notificación")
+        try:
+            lambda_client.invoke(
+                FunctionName=os.environ["REPORTER_AGENT_FUNCTION_NAME"],
+                InvocationType="Event",  # Async, no esperamos respuesta
+                Payload=json.dumps({
+                    "new_concerts_count": new_count,
+                    "flight_deals":       flight_deals,
+                    "report_date":        date.today().isoformat(),
+                }),
+            )
+            results["notified"] = True
+        except Exception as e:
+            logger.error(f"Error invocando Reporter Agent: {e}")
+    else:
+        logger.info("No hay novedades relevantes para notificar hoy")
+
+    logger.info(f"Orchestrator completado: {results}")
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Recolección de conciertos (todos los plugins en paralelo)
+# ---------------------------------------------------------------------------
+
+async def collect_all_concerts(
+    countries: list[Country],
+    genres: list[MetalGenre],
+) -> list[Concert]:
+    """
+    Ejecuta todos los plugins en paralelo para máxima eficiencia.
+    Maneja errores individuales sin detener el proceso completo.
+    """
+    import asyncio
+
+    from_date = date.today()
+    to_date   = date.today() + timedelta(days=SEARCH_DAYS_AHEAD)
+
+    # Instanciar todos los plugins activos
+    plugins = []
+    try:
+        plugins.append(SongkickPlugin())
+    except Exception as e:
+        logger.warning(f"SongkickPlugin no disponible: {e}")
+
+    try:
+        plugins.append(BandsintownPlugin())
+    except Exception as e:
+        logger.warning(f"BandsintownPlugin no disponible: {e}")
+
+    try:
+        plugins.append(EventbritePlugin())
+    except Exception as e:
+        logger.warning(f"EventbritePlugin no disponible: {e}")
+
+    try:
+        plugins.append(MetalArchivesPlugin())
+    except Exception as e:
+        logger.warning(f"MetalArchivesPlugin no disponible: {e}")
+
+    if not plugins:
+        logger.error("No hay plugins disponibles")
+        return []
+
+    # Ejecutar todos en paralelo
+    tasks = [
+        plugin.fetch_concerts(countries, genres, from_date, to_date)
+        for plugin in plugins
+        if plugin.is_enabled
+    ]
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    all_concerts = []
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            logger.error(f"Plugin {plugins[i].source_name} falló: {result}")
+            continue
+        all_concerts.extend(result)
+
+    return all_concerts
+
+
+# ---------------------------------------------------------------------------
+# Clasificación y filtrado con LLM
+# ---------------------------------------------------------------------------
+
+def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list[Concert]:
+    """
+    Usa Bedrock para clasificar bandas desconocidas y filtrar las que no son metal.
+    
+    Para evitar llamadas innecesarias al LLM:
+    1. Primero verifica si el nombre de la banda hace match con keywords obvios de metal
+    2. Solo llama al LLM para bandas ambiguas
+    """
+    classified = []
+    uncertain_bands = []
+
+    for concert in concerts:
+        # Si el nombre de la banda o el venue tiene keywords de metal, es obvio
+        band_lower = concert.band_name.lower()
+        obvious_metal_keywords = [
+            "metal", "death", "black", "thrash", "slayer", "sepultura",
+            "obituary", "kreator", "morbid", "cannibal", "napalm", "venom",
+        ]
+        if any(kw in band_lower for kw in obvious_metal_keywords):
+            classified.append(concert)
+            continue
+
+        # Bandas bien conocidas que queremos siempre incluir
+        known_metal_bands = {
+            "metallica", "megadeth", "anthrax", "iron maiden", "judas priest",
+            "motörhead", "motorhead", "accept", "dio", "exodus", "testament",
+            "overkill", "destruction", "sodom", "watain", "behemoth", "mgła",
+        }
+        if band_lower in known_metal_bands:
+            classified.append(concert)
+            continue
+
+        # Banda ambigua → clasificar con LLM (en lote para eficiencia)
+        uncertain_bands.append(concert)
+
+    # Clasificar bandas inciertas en lotes de 10
+    if uncertain_bands:
+        logger.info(f"Clasificando {len(uncertain_bands)} bandas con LLM")
+        band_names = list({c.band_name for c in uncertain_bands})  # Deduplicar nombres
+
+        # Lote de clasificación
+        batch_size = 15
+        metal_bands_confirmed = set()
+
+        for i in range(0, len(band_names), batch_size):
+            batch = band_names[i:i + batch_size]
+            confirmed = classify_bands_batch(batch, bedrock)
+            metal_bands_confirmed.update(confirmed)
+
+        # Agregar solo las que confirmó el LLM
+        for concert in uncertain_bands:
+            if concert.band_name in metal_bands_confirmed:
+                classified.append(concert)
+
+    # Deduplicar por unique_key
+    seen = set()
+    unique_concerts = []
+    for concert in classified:
+        if concert.unique_key not in seen:
+            seen.add(concert.unique_key)
+            unique_concerts.append(concert)
+
+    return unique_concerts
+
+
+def classify_bands_batch(band_names: list[str], bedrock: BedrockClient) -> set[str]:
+    """
+    Clasifica un lote de nombres de bandas y retorna cuáles son de metal.
+    Usa un solo call a Bedrock para todo el lote (eficiencia de costo).
+    """
+    bands_list = "\n".join(f"- {name}" for name in band_names)
+
+    prompt = f"""De la siguiente lista de nombres de bandas, identifica cuáles son bandas de:
+black metal, death metal, war metal, heavy metal, o thrash metal.
+
+Lista:
+{bands_list}
+
+Responde SOLO con JSON:
+{{"metal_bands": ["nombre exacto de las bandas que SÍ son de metal"]}}
+
+Incluye en la lista solo bandas que claramente pertenezcan a esos géneros.
+Si no estás seguro de alguna, NO la incluyas."""
+
+    try:
+        response = bedrock.invoke(prompt, max_tokens=500, temperature=0.0)
+        clean = response.strip()
+        if clean.startswith("```"):
+            clean = clean.split("```")[1]
+            if clean.startswith("json"):
+                clean = clean[4:]
+        data = json.loads(clean)
+        return set(data.get("metal_bands", []))
+    except Exception as e:
+        logger.warning(f"Error en classify_bands_batch: {e}")
+        return set()
+
+
+# ---------------------------------------------------------------------------
+# Decisión de notificación
+# ---------------------------------------------------------------------------
+
+def decide_should_notify(
+    new_concerts: int,
+    flight_deals: list[dict],
+    bedrock: BedrockClient,
+) -> bool:
+    """
+    Decide si vale la pena enviar notificación hoy.
+    
+    Reglas:
+    - Siempre notifica si hay deals de vuelos (precio bajo histórico)
+    - Notifica si hay conciertos nuevos en Finlandia (eventos raros y especiales)
+    - No notifica si solo hay conciertos ya conocidos sin deals
+    - Envía reporte semanal completo los domingos independientemente
+    """
+    from datetime import date
+    today = date.today()
+
+    # Reporte semanal los domingos siempre
+    if today.weekday() == 6:  # 6 = domingo
+        return True
+
+    # Hay deals de vuelos → siempre notificar
+    if flight_deals:
+        return True
+
+    # Hay conciertos nuevos → notificar
+    if new_concerts > 0:
+        return True
+
+    return False
