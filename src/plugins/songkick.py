@@ -95,7 +95,7 @@ class SongkickPlugin(ConcertSourcePlugin):
         return 60  # Conservador para no llegar al límite
 
     # -------------------------------------------------------------------
-    # Método principal
+    # Metodo principal
     # -------------------------------------------------------------------
 
     async def fetch_concerts(

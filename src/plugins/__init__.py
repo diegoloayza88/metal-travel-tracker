@@ -30,7 +30,7 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
     """
     Instancia y retorna todos los plugins habilitados.
     Los plugins que no tienen su API key configurada se saltan
-    con un warning en lugar de fallar todo el proceso.
+    con un warning en lugar de fallar el proceso.
     """
     import logging
     logger = logging.getLogger(__name__)

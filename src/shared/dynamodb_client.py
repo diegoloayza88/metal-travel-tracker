@@ -143,7 +143,7 @@ class DynamoDBClient:
     def get_concerts_needing_flight_search(self, days_ahead: int = 180) -> list[dict]:
         """
         Retorna conciertos que aún no tienen vuelo asociado buscado.
-        El Flight Agent llama este método para saber qué buscar hoy.
+        El Flight Agent llama este metodo para saber qué buscar hoy.
         """
         try:
             response = self._table.scan(

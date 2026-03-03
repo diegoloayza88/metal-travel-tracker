@@ -55,7 +55,7 @@ class ConcertSourcePlugin(ABC):
         pass
 
     # -------------------------------------------------------------------
-    # Método principal abstracto
+    # Metodo principal abstracto
     # -------------------------------------------------------------------
 
     @abstractmethod

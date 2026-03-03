@@ -315,7 +315,7 @@ def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list
 def classify_bands_batch(band_names: list[str], bedrock: BedrockClient) -> set[str]:
     """
     Clasifica un lote de nombres de bandas y retorna cuáles son de metal.
-    Usa un solo call a Bedrock para todo el lote (eficiencia de costo).
+    Usa un solo call a Bedrock para el lote (eficiencia de costo).
     """
     bands_list = "\n".join(f"- {name}" for name in band_names)
 

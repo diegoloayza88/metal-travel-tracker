@@ -213,7 +213,7 @@ class NotificationService:
             return False
 
     # -------------------------------------------------------------------
-    # Método conveniente para notificar errores del sistema
+    # Metodo conveniente para notificar errores del sistema
     # -------------------------------------------------------------------
 
     def send_error_alert(self, error_message: str, agent_name: str) -> None:

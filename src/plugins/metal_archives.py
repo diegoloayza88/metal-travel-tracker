@@ -234,7 +234,7 @@ class MetalArchivesPlugin(ConcertSourcePlugin):
                 event_type=event_type,
                 venue=venue,
                 genres=[],  # Metal-Archives lista solo metal, géneros se clasifican luego
-                confidence=0.9,  # Alta confianza — todo en MA es metal por definición
+                confidence=0.9,  # Alta confianza — MA es metal por definición
             )
 
         except Exception as e:
