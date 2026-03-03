@@ -15,7 +15,7 @@ locals {
 # Lambda: Orchestrator Agent
 # -----------------------------------------------------------------------------
 
-rresource "aws_lambda_function" "orchestrator" {
+resource "aws_lambda_function" "orchestrator" {
   function_name = "${local.prefix}-orchestrator"
   description   = "Orchestrator Agent - coordina todos los demás agentes diariamente"
   role          = aws_iam_role.lambda_execution.arn
