@@ -276,8 +276,6 @@ def generate_booking_links(
     })
     booking_url = f"https://www.booking.com/searchresults.html?{params}"
 
-    nights = (checkout - checkin).days
-
     return [Hotel(
         name=f"Ver hoteles disponibles en {city} →",
         city=city,

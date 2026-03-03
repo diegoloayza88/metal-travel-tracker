@@ -285,7 +285,7 @@ def parse_amadeus_offer(
             return_date=return_date,
             price_usd=price,
             airline=airline,
-            booking_url=f"https://www.amadeus.com",  # Profundizar en v2
+            booking_url="https://www.amadeus.com",  # Profundizar en v2
             source="amadeus",
             stops=stops,
         )
