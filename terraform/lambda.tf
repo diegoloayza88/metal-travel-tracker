@@ -236,10 +236,9 @@ resource "aws_lambda_permission" "s3_invoke_whatsapp_parser" {
 
 resource "aws_lambda_layer_version" "python_deps" {
   layer_name          = "${local.prefix}-python-deps"
-  description         = "Python dependencies: httpx, etc."
+  description         = "Dependencias Python: httpx, etc."
   compatible_runtimes = ["python3.13"]
 
-  # The layer is built in CI/CD with: pip install -r requirements.txt -t layer/python/
   filename         = "${path.root}/../.build/layer.zip"
-  source_code_hash = filebase64sha256("${path.root}/../.build/layer.zip")
+  source_code_hash = fileexists("${path.root}/../.build/layer.zip") ? filebase64sha256("${path.root}/../.build/layer.zip") : "placeholder"
 }

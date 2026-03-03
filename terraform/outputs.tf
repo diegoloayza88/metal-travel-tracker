@@ -40,5 +40,5 @@ output "cloudwatch_logs_urls" {
 
 output "ses_verification_note" {
   description = "Recordatorio sobre verificación de SES"
-  value       = "IMPORTANTE: Revisa tu email ${var.notification_email_from} para verificar la identidad en SES antes de que los emails funcionen."
+  value       = "IMPORTANTE: Revisa tu email para verificar la identidad en SES antes de que los emails funcionen."
 }
