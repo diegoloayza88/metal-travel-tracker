@@ -113,7 +113,7 @@ variable "daily_run_cron" {
   description = "Cron expression for daily execution (UTC). Lima is UTC-5."
   type        = string
   # 13:00 UTC = 08:00 Lima (Lima time)
-  default     = "cron(0 13 * * ? *)"
+  default = "cron(0 13 * * ? *)"
 }
 
 # ---- Lambda ------------------------------------------------------------------
@@ -121,7 +121,7 @@ variable "daily_run_cron" {
 variable "lambda_timeout_seconds" {
   description = "Timeout for main Lambdas in seconds"
   type        = number
-  default     = 300  # 5 minutes
+  default     = 300 # 5 minutes
 
   validation {
     condition     = var.lambda_timeout_seconds <= 900

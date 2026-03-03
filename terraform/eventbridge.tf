@@ -18,7 +18,7 @@ resource "aws_scheduler_schedule" "daily_run" {
 
   flexible_time_window {
     mode                      = "FLEXIBLE"
-    maximum_window_in_minutes = 15  # Can execute up to 15min after 8am
+    maximum_window_in_minutes = 15 # Can execute up to 15min after 8am
   }
 
   target {
@@ -26,14 +26,14 @@ resource "aws_scheduler_schedule" "daily_run" {
     role_arn = aws_iam_role.scheduler_execution.arn
 
     input = jsonencode({
-      source    = "eventbridge-scheduler"
-      run_type  = "daily"
+      source       = "eventbridge-scheduler"
+      run_type     = "daily"
       triggered_at = "auto"
     })
 
     retry_policy {
-      maximum_attempts         = 3
-      maximum_event_age_in_seconds = 3600  # Do not retry if the event is older than 1 hour
+      maximum_attempts             = 3
+      maximum_event_age_in_seconds = 3600 # Do not retry if the event is older than 1 hour
     }
   }
 }
@@ -47,11 +47,11 @@ resource "aws_scheduler_schedule" "weekly_report" {
   description = "Full weekly report, every Sunday at 9am Lima"
   group_name  = "default"
 
-  schedule_expression          = "cron(0 14 ? * SUN *)"  # 14:00 UTC = 09:00 Lima Sunday
+  schedule_expression          = "cron(0 14 ? * SUN *)" # 14:00 UTC = 09:00 Lima Sunday
   schedule_expression_timezone = "America/Lima"
 
   flexible_time_window {
-    mode = "OFF"  # The weekly report must be on time
+    mode = "OFF" # The weekly report must be on time
   }
 
   target {
@@ -59,13 +59,13 @@ resource "aws_scheduler_schedule" "weekly_report" {
     role_arn = aws_iam_role.scheduler_execution.arn
 
     input = jsonencode({
-      source            = "eventbridge-scheduler"
-      is_weekly_report  = true
-      report_date       = "auto"
+      source           = "eventbridge-scheduler"
+      is_weekly_report = true
+      report_date      = "auto"
     })
 
     retry_policy {
-      maximum_attempts         = 2
+      maximum_attempts             = 2
       maximum_event_age_in_seconds = 1800
     }
   }

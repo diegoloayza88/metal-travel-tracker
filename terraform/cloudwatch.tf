@@ -103,7 +103,7 @@ resource "aws_cloudwatch_metric_alarm" "orchestrator_errors" {
   evaluation_periods  = 1
   metric_name         = "Errors"
   namespace           = "AWS/Lambda"
-  period              = 86400  # 1 día
+  period              = 86400 # 1 día
   statistic           = "Sum"
   threshold           = 0
   treat_missing_data  = "notBreaching"
@@ -144,10 +144,10 @@ resource "aws_cloudwatch_metric_alarm" "orchestrator_no_invocations" {
   evaluation_periods  = 1
   metric_name         = "Invocations"
   namespace           = "AWS/Lambda"
-  period              = 90000  # 25 horas
+  period              = 90000 # 25 horas
   statistic           = "Sum"
   threshold           = 1
-  treat_missing_data  = "breaching"  # Si no hay datos, ALARM
+  treat_missing_data  = "breaching" # Si no hay datos, ALARM
 
   dimensions = {
     FunctionName = aws_lambda_function.orchestrator.function_name

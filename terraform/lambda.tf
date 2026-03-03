@@ -199,7 +199,7 @@ resource "aws_lambda_function" "whatsapp_parser" {
   role          = aws_iam_role.lambda_execution.arn
   handler       = "processors.whatsapp_export_parser.handler.lambda_handler"
   runtime       = "python3.13"
-  timeout       = 300  # Files can be large
+  timeout       = 300 # Files can be large
   memory_size   = 512
 
   filename         = data.archive_file.whatsapp_parser.output_path

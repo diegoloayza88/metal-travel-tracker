@@ -31,10 +31,10 @@ output "concerts_table_name" {
 output "cloudwatch_logs_urls" {
   description = "URLs de CloudWatch Logs para cada agente"
   value = {
-    orchestrator     = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.orchestrator.name)}"
-    flight_agent     = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.flight_agent.name)}"
-    reporter_agent   = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.reporter_agent.name)}"
-    whatsapp_parser  = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.whatsapp_parser.name)}"
+    orchestrator    = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.orchestrator.name)}"
+    flight_agent    = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.flight_agent.name)}"
+    reporter_agent  = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.reporter_agent.name)}"
+    whatsapp_parser = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home#logsV2:log-groups/log-group/${urlencode(aws_cloudwatch_log_group.whatsapp_parser.name)}"
   }
 }
 

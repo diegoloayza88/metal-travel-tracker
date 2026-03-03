@@ -8,15 +8,15 @@ locals {
 
   # Common environment variables for all Lambdas
   common_env_vars = {
-    ENVIRONMENT            = var.environment
-    AWS_REGION_NAME        = var.aws_region
-    DYNAMODB_TABLE_CONCERTS = aws_dynamodb_table.concerts.name
-    DYNAMODB_TABLE_FLIGHTS  = aws_dynamodb_table.flight_prices.name
-    BEDROCK_MODEL_ID        = var.bedrock_model_id
-    DISCORD_WEBHOOK_URL     = var.discord_webhook_url
-    SNS_PHONE_NUMBER        = var.notification_phone_number
-    SES_FROM_EMAIL          = var.notification_email_from
-    SES_TO_EMAIL            = var.notification_email_to
+    ENVIRONMENT                  = var.environment
+    AWS_REGION_NAME              = var.aws_region
+    DYNAMODB_TABLE_CONCERTS      = aws_dynamodb_table.concerts.name
+    DYNAMODB_TABLE_FLIGHTS       = aws_dynamodb_table.flight_prices.name
+    BEDROCK_MODEL_ID             = var.bedrock_model_id
+    DISCORD_WEBHOOK_URL          = var.discord_webhook_url
+    SNS_PHONE_NUMBER             = var.notification_phone_number
+    SES_FROM_EMAIL               = var.notification_email_from
+    SES_TO_EMAIL                 = var.notification_email_to
     FLIGHT_AGENT_FUNCTION_NAME   = "${local.prefix}-flight-agent"
     REPORTER_AGENT_FUNCTION_NAME = "${local.prefix}-reporter-agent"
     HOTEL_AGENT_FUNCTION_NAME    = "${local.prefix}-hotel-agent"
@@ -30,7 +30,7 @@ locals {
 # Main concerts table
 resource "aws_dynamodb_table" "concerts" {
   name         = "${local.prefix}-concerts"
-  billing_mode = "PAY_PER_REQUEST"  # On-demand, no fixed capacity to pay for
+  billing_mode = "PAY_PER_REQUEST" # On-demand, no fixed capacity to pay for
   hash_key     = "pk"
   range_key    = "sk"
 
@@ -197,13 +197,13 @@ resource "aws_secretsmanager_secret" "api_keys" {
 resource "aws_secretsmanager_secret_version" "api_keys" {
   secret_id = aws_secretsmanager_secret.api_keys.id
   secret_string = jsonencode({
-    SONGKICK_API_KEY       = var.songkick_api_key
-    BANDSINTOWN_APP_ID     = var.bandsintown_app_id
-    EVENTBRITE_API_KEY     = var.eventbrite_api_key
-    AMADEUS_CLIENT_ID      = var.amadeus_client_id
-    AMADEUS_CLIENT_SECRET  = var.amadeus_client_secret
-    SERPAPI_KEY            = var.serpapi_key
-    BOOKING_AFFILIATE_ID   = var.booking_affiliate_id
+    SONGKICK_API_KEY      = var.songkick_api_key
+    BANDSINTOWN_APP_ID    = var.bandsintown_app_id
+    EVENTBRITE_API_KEY    = var.eventbrite_api_key
+    AMADEUS_CLIENT_ID     = var.amadeus_client_id
+    AMADEUS_CLIENT_SECRET = var.amadeus_client_secret
+    SERPAPI_KEY           = var.serpapi_key
+    BOOKING_AFFILIATE_ID  = var.booking_affiliate_id
   })
 }
 

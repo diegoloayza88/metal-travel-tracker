@@ -162,7 +162,7 @@ resource "aws_iam_policy" "sns_access" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["sns:Publish"]
-      Resource = "*"  # Direct SNS SMS does not have a specific topic ARN
+      Resource = "*" # Direct SNS SMS does not have a specific topic ARN
     }]
   })
 }
