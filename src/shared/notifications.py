@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     """
     Servicio de notificaciones multi-canal.
-    
+
     Variables de entorno requeridas:
         SNS_PHONE_NUMBER      → Número de celular en formato E.164 (ej: +51999999999)
         SES_FROM_EMAIL        → Email verificado en SES (ej: tu_email@gmail.com)
@@ -35,12 +35,12 @@ class NotificationService:
     """
 
     def __init__(self):
-        region            = os.environ.get("AWS_REGION", "us-east-1")
-        self._sns_client  = boto3.client("sns",  region_name=region)
-        self._ses_client  = boto3.client("ses",  region_name=region)
-        self._phone       = os.environ.get("SNS_PHONE_NUMBER", "")
-        self._from_email  = os.environ.get("SES_FROM_EMAIL", "")
-        self._to_email    = os.environ.get("SES_TO_EMAIL", "")
+        region = os.environ.get("AWS_REGION", "us-east-1")
+        self._sns_client = boto3.client("sns", region_name=region)
+        self._ses_client = boto3.client("ses", region_name=region)
+        self._phone = os.environ.get("SNS_PHONE_NUMBER", "")
+        self._from_email = os.environ.get("SES_FROM_EMAIL", "")
+        self._to_email = os.environ.get("SES_TO_EMAIL", "")
         self._discord_url = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
     # -------------------------------------------------------------------
@@ -50,13 +50,13 @@ class NotificationService:
     def send_sms(self, message: str) -> bool:
         """
         Envía SMS al número de celular configurado.
-        
+
         AWS SNS cobra por SMS enviado (~$0.00645 USD por SMS a Perú).
-        
+
         Args:
             message: Texto del SMS. Máximo 160 chars para SMS simple.
                      SNS concatena automáticamente si es más largo.
-        
+
         Returns:
             True si se envió exitosamente.
         """
@@ -70,11 +70,11 @@ class NotificationService:
                 Message=message,
                 MessageAttributes={
                     "AWS.SNS.SMS.SMSType": {
-                        "DataType":    "String",
+                        "DataType": "String",
                         "StringValue": "Transactional",  # Alta prioridad de entrega
                     },
                     "AWS.SNS.SMS.SenderID": {
-                        "DataType":    "String",
+                        "DataType": "String",
                         "StringValue": "MetalTravel",  # Aparece como remitente
                     },
                 },
@@ -83,7 +83,9 @@ class NotificationService:
             return True
 
         except ClientError as e:
-            logger.error(f"Error enviando SMS via SNS: {e.response['Error']['Message']}")
+            logger.error(
+                f"Error enviando SMS via SNS: {e.response['Error']['Message']}"
+            )
             return False
         except Exception as e:
             logger.error(f"Error inesperado enviando SMS: {e}")
@@ -101,33 +103,35 @@ class NotificationService:
     ) -> bool:
         """
         Envía email via AWS SES.
-        
+
         Prerequisito: El email de origen debe estar verificado en SES.
         Si tu cuenta está en sandbox, también el destino debe estar verificado.
         Para salir del sandbox: solicitar producción en la consola de SES.
-        
+
         Args:
             subject:   Asunto del email.
             body_text: Cuerpo en texto plano (fallback para clientes sin HTML).
             body_html: Cuerpo en HTML (versión rica, opcional).
-        
+
         Returns:
             True si se envió exitosamente.
         """
         if not self._from_email or not self._to_email:
-            logger.warning("Email: SES_FROM_EMAIL o SES_TO_EMAIL no configurados, saltando")
+            logger.warning(
+                "Email: SES_FROM_EMAIL o SES_TO_EMAIL no configurados, saltando"
+            )
             return False
 
         message_body = {
             "Text": {
-                "Data":    body_text,
+                "Data": body_text,
                 "Charset": "UTF-8",
             }
         }
 
         if body_html:
             message_body["Html"] = {
-                "Data":    body_html,
+                "Data": body_html,
                 "Charset": "UTF-8",
             }
 
@@ -139,7 +143,7 @@ class NotificationService:
                 },
                 Message={
                     "Subject": {
-                        "Data":    subject,
+                        "Data": subject,
                         "Charset": "UTF-8",
                     },
                     "Body": message_body,
@@ -150,7 +154,9 @@ class NotificationService:
 
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
-            logger.error(f"Error enviando email via SES ({error_code}): {e.response['Error']['Message']}")
+            logger.error(
+                f"Error enviando email via SES ({error_code}): {e.response['Error']['Message']}"
+            )
             return False
         except Exception as e:
             logger.error(f"Error inesperado enviando email: {e}")
@@ -163,14 +169,14 @@ class NotificationService:
     def send_discord(self, payload: dict) -> bool:
         """
         Envía un mensaje a Discord via webhook.
-        
+
         El payload puede ser un mensaje simple o un embed complejo.
         Ver builder en reporter_agent/handler.py → build_discord_message().
-        
+
         Args:
             payload: Dict con el payload del webhook de Discord.
                      Puede incluir 'content' (texto simple) o 'embeds' (ricos).
-        
+
         Returns:
             True si Discord respondió con 2xx.
         """
@@ -184,8 +190,8 @@ class NotificationService:
                 self._discord_url,
                 data=data,
                 headers={
-                    "Content-Type":   "application/json",
-                    "User-Agent":     "MetalTravelTracker/1.0",
+                    "Content-Type": "application/json",
+                    "User-Agent": "MetalTravelTracker/1.0",
                 },
                 method="POST",
             )
@@ -222,11 +228,13 @@ class NotificationService:
         Útil para monitoreo de salud del sistema.
         """
         payload = {
-            "embeds": [{
-                "title":       f"⚠️ Error en {agent_name}",
-                "description": f"```\n{error_message[:1900]}\n```",
-                "color":       0xFF0000,
-                "footer":      {"text": "Metal Travel Tracker — System Alert"},
-            }]
+            "embeds": [
+                {
+                    "title": f"⚠️ Error en {agent_name}",
+                    "description": f"```\n{error_message[:1900]}\n```",
+                    "color": 0xFF0000,
+                    "footer": {"text": "Metal Travel Tracker — System Alert"},
+                }
+            ]
         }
         self.send_discord(payload)

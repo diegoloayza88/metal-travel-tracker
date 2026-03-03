@@ -26,20 +26,18 @@ from src.plugins.base import ConcertSourcePlugin
 
 # Metal-Archives usa nombres de países en inglés
 COUNTRY_NAMES: dict[Country, list[str]] = {
-    Country.COLOMBIA:      ["Colombia"],
-    Country.CHILE:         ["Chile"],
-    Country.BRAZIL:        ["Brazil"],
+    Country.COLOMBIA: ["Colombia"],
+    Country.CHILE: ["Chile"],
+    Country.BRAZIL: ["Brazil"],
     Country.UNITED_STATES: ["United States"],
-    Country.MEXICO:        ["Mexico"],
-    Country.FINLAND:       ["Finland"],
-    Country.SPAIN:         ["Spain"],
+    Country.MEXICO: ["Mexico"],
+    Country.FINLAND: ["Finland"],
+    Country.SPAIN: ["Spain"],
 }
 
 # Mapeo inverso: nombre de país → enum
 NAME_TO_COUNTRY: dict[str, Country] = {
-    name: country
-    for country, names in COUNTRY_NAMES.items()
-    for name in names
+    name: country for country, names in COUNTRY_NAMES.items() for name in names
 }
 
 # Metal-Archives tiene una API no oficial para su sección de shows
@@ -62,9 +60,9 @@ class MetalArchivesPlugin(ConcertSourcePlugin):
                 "Mozilla/5.0 (compatible; MetalTravelTracker/1.0; "
                 "Personal project for concert discovery)"
             ),
-            "Accept":          "application/json, text/javascript, */*",
+            "Accept": "application/json, text/javascript, */*",
             "Accept-Language": "en-US,en;q=0.9",
-            "Referer":         "https://www.metal-archives.com/",
+            "Referer": "https://www.metal-archives.com/",
             "X-Requested-With": "XMLHttpRequest",
         }
 
@@ -133,12 +131,12 @@ class MetalArchivesPlugin(ConcertSourcePlugin):
                 response = await client.get(
                     MA_SHOWS_API,
                     params={
-                        "sEcho":           1,
-                        "iDisplayStart":   start,
-                        "iDisplayLength":  page_size,
-                        "sSortDir_0":      "asc",
-                        "year":            year,
-                        "month":           month,
+                        "sEcho": 1,
+                        "iDisplayStart": start,
+                        "iDisplayLength": page_size,
+                        "sSortDir_0": "asc",
+                        "year": year,
+                        "month": month,
                     },
                 )
                 response.raise_for_status()
@@ -214,10 +212,12 @@ class MetalArchivesPlugin(ConcertSourcePlugin):
 
             # Venue y ciudad
             venue = self._strip_html(record[2]).strip() or "TBD"
-            city  = self._strip_html(record[3]).strip() or country_str
+            city = self._strip_html(record[3]).strip() or country_str
 
             # Tipo de evento
-            event_type_str = self._strip_html(record[5]).lower() if len(record) > 5 else ""
+            event_type_str = (
+                self._strip_html(record[5]).lower() if len(record) > 5 else ""
+            )
             event_type = (
                 EventType.FESTIVAL
                 if any(w in event_type_str for w in ["festival", "open air", "fest"])

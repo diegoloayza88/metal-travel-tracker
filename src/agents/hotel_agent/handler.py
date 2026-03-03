@@ -31,34 +31,34 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Check-in 1 día antes, check-out 1 día después del concierto
-CHECKIN_DAYS_BEFORE  = 1
-CHECKOUT_DAYS_AFTER  = 1
+CHECKIN_DAYS_BEFORE = 1
+CHECKOUT_DAYS_AFTER = 1
 
 # Coordenadas aproximadas de ciudades principales para búsqueda por radio
 CITY_COORDINATES: dict[str, tuple[float, float]] = {
     # Colombia
-    "Bogotá":        (4.7110, -74.0721),
-    "Medellín":      (6.2442, -75.5812),
-    "Cali":          (3.4516, -76.5320),
+    "Bogotá": (4.7110, -74.0721),
+    "Medellín": (6.2442, -75.5812),
+    "Cali": (3.4516, -76.5320),
     # Chile
-    "Santiago":      (-33.4489, -70.6693),
+    "Santiago": (-33.4489, -70.6693),
     # Brasil
-    "São Paulo":     (-23.5505, -46.6333),
+    "São Paulo": (-23.5505, -46.6333),
     "Rio de Janeiro": (-22.9068, -43.1729),
     # USA
-    "New York":      (40.7128, -74.0060),
-    "Los Angeles":   (34.0522, -118.2437),
-    "Miami":         (25.7617, -80.1918),
-    "Chicago":       (41.8781, -87.6298),
+    "New York": (40.7128, -74.0060),
+    "Los Angeles": (34.0522, -118.2437),
+    "Miami": (25.7617, -80.1918),
+    "Chicago": (41.8781, -87.6298),
     # México
-    "Mexico City":   (19.4326, -99.1332),
-    "Guadalajara":   (20.6597, -103.3496),
+    "Mexico City": (19.4326, -99.1332),
+    "Guadalajara": (20.6597, -103.3496),
     # Finlandia
-    "Helsinki":      (60.1699, 24.9384),
-    "Tampere":       (61.4978, 23.7610),
+    "Helsinki": (60.1699, 24.9384),
+    "Tampere": (61.4978, 23.7610),
     # España
-    "Madrid":        (40.4168, -3.7038),
-    "Barcelona":     (41.3851, 2.1734),
+    "Madrid": (40.4168, -3.7038),
+    "Barcelona": (41.3851, 2.1734),
 }
 
 # Radio de búsqueda en km alrededor del centro de la ciudad
@@ -78,10 +78,10 @@ def lambda_handler(event: dict, context) -> dict:
     """
     logger.info(f"Hotel Agent iniciado: {json.dumps(event)}")
 
-    city         = event.get("city", "")
+    city = event.get("city", "")
     country_code = event.get("country", "")
     event_date_str = event.get("event_date", "")
-    concert_ref  = event.get("concert_ref", "")
+    concert_ref = event.get("concert_ref", "")
 
     if not city or not event_date_str:
         return {"error": "Faltan parámetros: city y event_date son requeridos"}
@@ -91,7 +91,7 @@ def lambda_handler(event: dict, context) -> dict:
     except ValueError:
         return {"error": f"Fecha inválida: {event_date_str}"}
 
-    checkin  = event_date - timedelta(days=CHECKIN_DAYS_BEFORE)
+    checkin = event_date - timedelta(days=CHECKIN_DAYS_BEFORE)
     checkout = event_date + timedelta(days=CHECKOUT_DAYS_AFTER)
 
     # Intentar con la API de Booking si está configurada
@@ -120,16 +120,16 @@ def lambda_handler(event: dict, context) -> dict:
 
     result = {
         "best_hotel": {
-            "name":                  best.name,
-            "city":                  best.city,
-            "price_per_night_usd":   best.price_per_night_usd,
-            "total_price_usd":       best.total_price_usd,
-            "rating":                best.rating,
-            "booking_url":           best.booking_url,
-            "check_in":              best.check_in.isoformat(),
-            "check_out":             best.check_out.isoformat(),
-            "nights":                best.nights,
-            "concert_ref":           concert_ref,
+            "name": best.name,
+            "city": best.city,
+            "price_per_night_usd": best.price_per_night_usd,
+            "total_price_usd": best.total_price_usd,
+            "rating": best.rating,
+            "booking_url": best.booking_url,
+            "check_in": best.check_in.isoformat(),
+            "check_out": best.check_out.isoformat(),
+            "nights": best.nights,
+            "concert_ref": concert_ref,
         },
         "hotels_found": len(hotels),
     }
@@ -144,6 +144,7 @@ def lambda_handler(event: dict, context) -> dict:
 # ---------------------------------------------------------------------------
 # Booking.com Affiliate API
 # ---------------------------------------------------------------------------
+
 
 def search_booking_api(
     city: str,
@@ -169,22 +170,22 @@ def search_booking_api(
         response = httpx.get(
             "https://distribution-xml.booking.com/2.0/json/hotels",
             params={
-                "latitude":       lat,
-                "longitude":      lon,
-                "radius":         SEARCH_RADIUS_KM,
-                "checkin":        checkin.strftime("%Y-%m-%d"),
-                "checkout":       checkout.strftime("%Y-%m-%d"),
-                "adults_number":  1,
-                "room_number":    1,
-                "rows":           10,
-                "order_by":       "price",
+                "latitude": lat,
+                "longitude": lon,
+                "radius": SEARCH_RADIUS_KM,
+                "checkin": checkin.strftime("%Y-%m-%d"),
+                "checkout": checkout.strftime("%Y-%m-%d"),
+                "adults_number": 1,
+                "room_number": 1,
+                "rows": 10,
+                "order_by": "price",
                 "min_review_score": 7.0,
-                "currency":       "USD",
-                "languagecode":   "es",
+                "currency": "USD",
+                "languagecode": "es",
             },
             headers={
                 "Authorization": f"Basic {affiliate_id}",
-                "Content-Type":  "application/json",
+                "Content-Type": "application/json",
             },
             timeout=20.0,
         )
@@ -214,10 +215,14 @@ def _parse_booking_result(
     """Parsea un resultado de la API de Booking al modelo Hotel."""
     try:
         from src.models.concert import Country as CountryEnum
+
         country_map = {
-            "CO": CountryEnum.COLOMBIA, "CL": CountryEnum.CHILE,
-            "BR": CountryEnum.BRAZIL,   "US": CountryEnum.UNITED_STATES,
-            "MX": CountryEnum.MEXICO,   "FI": CountryEnum.FINLAND,
+            "CO": CountryEnum.COLOMBIA,
+            "CL": CountryEnum.CHILE,
+            "BR": CountryEnum.BRAZIL,
+            "US": CountryEnum.UNITED_STATES,
+            "MX": CountryEnum.MEXICO,
+            "FI": CountryEnum.FINLAND,
             "ES": CountryEnum.SPAIN,
         }
         country = country_map.get(country_code, CountryEnum.COLOMBIA)
@@ -245,6 +250,7 @@ def _parse_booking_result(
 # Fallback: Links directos a Booking.com (sin API)
 # ---------------------------------------------------------------------------
 
+
 def generate_booking_links(
     city: str,
     country_code: str,
@@ -258,32 +264,40 @@ def generate_booking_links(
     Retorna un hotel "placeholder" con el link de búsqueda.
     """
     from src.models.concert import Country as CountryEnum
+
     country_map = {
-        "CO": CountryEnum.COLOMBIA, "CL": CountryEnum.CHILE,
-        "BR": CountryEnum.BRAZIL,   "US": CountryEnum.UNITED_STATES,
-        "MX": CountryEnum.MEXICO,   "FI": CountryEnum.FINLAND,
+        "CO": CountryEnum.COLOMBIA,
+        "CL": CountryEnum.CHILE,
+        "BR": CountryEnum.BRAZIL,
+        "US": CountryEnum.UNITED_STATES,
+        "MX": CountryEnum.MEXICO,
+        "FI": CountryEnum.FINLAND,
         "ES": CountryEnum.SPAIN,
     }
     country = country_map.get(country_code, CountryEnum.COLOMBIA)
 
-    params = urlencode({
-        "ss":       city,
-        "checkin":  checkin.strftime("%Y-%m-%d"),
-        "checkout": checkout.strftime("%Y-%m-%d"),
-        "group_adults": 1,
-        "no_rooms": 1,
-        "order":    "price",
-    })
+    params = urlencode(
+        {
+            "ss": city,
+            "checkin": checkin.strftime("%Y-%m-%d"),
+            "checkout": checkout.strftime("%Y-%m-%d"),
+            "group_adults": 1,
+            "no_rooms": 1,
+            "order": "price",
+        }
+    )
     booking_url = f"https://www.booking.com/searchresults.html?{params}"
 
-    return [Hotel(
-        name=f"Ver hoteles disponibles en {city} →",
-        city=city,
-        country=country,
-        price_per_night_usd=0.0,  # Precio desconocido sin API
-        total_price_usd=0.0,
-        check_in=checkin,
-        check_out=checkout,
-        rating=None,
-        booking_url=booking_url,
-    )]
+    return [
+        Hotel(
+            name=f"Ver hoteles disponibles en {city} →",
+            city=city,
+            country=country,
+            price_per_night_usd=0.0,  # Precio desconocido sin API
+            total_price_usd=0.0,
+            check_in=checkin,
+            check_out=checkout,
+            rating=None,
+            booking_url=booking_url,
+        )
+    ]

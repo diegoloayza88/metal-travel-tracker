@@ -70,17 +70,17 @@ def lambda_handler(event: dict, context) -> dict:
     logger.info("Orchestrator Agent iniciado")
     logger.info(f"Evento: {json.dumps(event)}")
 
-    bedrock      = BedrockClient()
-    dynamodb     = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
+    bedrock = BedrockClient()
+    dynamodb = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
     lambda_client = boto3.client("lambda")
 
     results = {
-        "date":              date.today().isoformat(),
-        "concerts_found":    0,
-        "concerts_new":      0,
-        "flights_searched":  0,
-        "deals_found":       0,
-        "notified":          False,
+        "date": date.today().isoformat(),
+        "concerts_found": 0,
+        "concerts_new": 0,
+        "flights_searched": 0,
+        "deals_found": 0,
+        "notified": False,
     }
 
     # -------------------------------------------------------------------
@@ -89,11 +89,12 @@ def lambda_handler(event: dict, context) -> dict:
     logger.info("Paso 1: Recolectando conciertos de fuentes externas")
 
     import asyncio
-    all_concerts = asyncio.run(
-        collect_all_concerts(TARGET_COUNTRIES, TARGET_GENRES)
-    )
+
+    all_concerts = asyncio.run(collect_all_concerts(TARGET_COUNTRIES, TARGET_GENRES))
     results["concerts_found"] = len(all_concerts)
-    logger.info(f"Total conciertos recolectados (antes de deduplicar): {len(all_concerts)}")
+    logger.info(
+        f"Total conciertos recolectados (antes de deduplicar): {len(all_concerts)}"
+    )
 
     # -------------------------------------------------------------------
     # PASO 2: Filtrar, clasificar y deduplicar
@@ -121,19 +122,25 @@ def lambda_handler(event: dict, context) -> dict:
     concerts_needing_flights = dynamodb.get_concerts_needing_flight_search(
         days_ahead=SEARCH_DAYS_AHEAD
     )
-    logger.info(f"Conciertos que necesitan búsqueda de vuelos: {len(concerts_needing_flights)}")
+    logger.info(
+        f"Conciertos que necesitan búsqueda de vuelos: {len(concerts_needing_flights)}"
+    )
 
     flight_deals = []
-    for concert_item in concerts_needing_flights[:20]:  # Máximo 20 por día para no saturar APIs
+    for concert_item in concerts_needing_flights[
+        :20
+    ]:  # Máximo 20 por día para no saturar APIs
         try:
             flight_result = lambda_client.invoke(
                 FunctionName=os.environ["FLIGHT_AGENT_FUNCTION_NAME"],
                 InvocationType="RequestResponse",
-                Payload=json.dumps({
-                    "concert_country":  concert_item.get("country"),
-                    "event_date":       concert_item.get("event_date"),
-                    "concert_ref":      concert_item.get("sk"),
-                }),
+                Payload=json.dumps(
+                    {
+                        "concert_country": concert_item.get("country"),
+                        "event_date": concert_item.get("event_date"),
+                        "concert_ref": concert_item.get("sk"),
+                    }
+                ),
             )
             flight_data = json.loads(flight_result["Payload"].read())
             if flight_data.get("best_deal"):
@@ -164,11 +171,13 @@ def lambda_handler(event: dict, context) -> dict:
             lambda_client.invoke(
                 FunctionName=os.environ["REPORTER_AGENT_FUNCTION_NAME"],
                 InvocationType="Event",  # Async, no esperamos respuesta
-                Payload=json.dumps({
-                    "new_concerts_count": new_count,
-                    "flight_deals":       flight_deals,
-                    "report_date":        date.today().isoformat(),
-                }),
+                Payload=json.dumps(
+                    {
+                        "new_concerts_count": new_count,
+                        "flight_deals": flight_deals,
+                        "report_date": date.today().isoformat(),
+                    }
+                ),
             )
             results["notified"] = True
         except Exception as e:
@@ -184,6 +193,7 @@ def lambda_handler(event: dict, context) -> dict:
 # Recolección de conciertos (todos los plugins en paralelo)
 # ---------------------------------------------------------------------------
 
+
 async def collect_all_concerts(
     countries: list[Country],
     genres: list[MetalGenre],
@@ -195,7 +205,7 @@ async def collect_all_concerts(
     import asyncio
 
     from_date = date.today()
-    to_date   = date.today() + timedelta(days=SEARCH_DAYS_AHEAD)
+    to_date = date.today() + timedelta(days=SEARCH_DAYS_AHEAD)
 
     # Instanciar todos los plugins activos
     plugins = []
@@ -246,10 +256,13 @@ async def collect_all_concerts(
 # Clasificación y filtrado con LLM
 # ---------------------------------------------------------------------------
 
-def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list[Concert]:
+
+def classify_and_filter(
+    concerts: list[Concert], bedrock: BedrockClient
+) -> list[Concert]:
     """
     Usa Bedrock para clasificar bandas desconocidas y filtrar las que no son metal.
-    
+
     Para evitar llamadas innecesarias al LLM:
     1. Primero verifica si el nombre de la banda hace match con keywords obvios de metal
     2. Solo llama al LLM para bandas ambiguas
@@ -261,8 +274,18 @@ def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list
         # Si el nombre de la banda o el venue tiene keywords de metal, es obvio
         band_lower = concert.band_name.lower()
         obvious_metal_keywords = [
-            "metal", "death", "black", "thrash", "slayer", "sepultura",
-            "obituary", "kreator", "morbid", "cannibal", "napalm", "venom",
+            "metal",
+            "death",
+            "black",
+            "thrash",
+            "slayer",
+            "sepultura",
+            "obituary",
+            "kreator",
+            "morbid",
+            "cannibal",
+            "napalm",
+            "venom",
         ]
         if any(kw in band_lower for kw in obvious_metal_keywords):
             classified.append(concert)
@@ -270,9 +293,23 @@ def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list
 
         # Bandas bien conocidas que queremos siempre incluir
         known_metal_bands = {
-            "metallica", "megadeth", "anthrax", "iron maiden", "judas priest",
-            "motörhead", "motorhead", "accept", "dio", "exodus", "testament",
-            "overkill", "destruction", "sodom", "watain", "behemoth", "mgła",
+            "metallica",
+            "megadeth",
+            "anthrax",
+            "iron maiden",
+            "judas priest",
+            "motörhead",
+            "motorhead",
+            "accept",
+            "dio",
+            "exodus",
+            "testament",
+            "overkill",
+            "destruction",
+            "sodom",
+            "watain",
+            "behemoth",
+            "mgła",
         }
         if band_lower in known_metal_bands:
             classified.append(concert)
@@ -291,7 +328,7 @@ def classify_and_filter(concerts: list[Concert], bedrock: BedrockClient) -> list
         metal_bands_confirmed = set()
 
         for i in range(0, len(band_names), batch_size):
-            batch = band_names[i:i + batch_size]
+            batch = band_names[i : i + batch_size]
             confirmed = classify_bands_batch(batch, bedrock)
             metal_bands_confirmed.update(confirmed)
 
@@ -348,6 +385,7 @@ Si no estás seguro de alguna, NO la incluyas."""
 # Decisión de notificación
 # ---------------------------------------------------------------------------
 
+
 def decide_should_notify(
     new_concerts: int,
     flight_deals: list[dict],
@@ -355,7 +393,7 @@ def decide_should_notify(
 ) -> bool:
     """
     Decide si vale la pena enviar notificación hoy.
-    
+
     Reglas:
     - Siempre notifica si hay deals de vuelos (precio bajo histórico)
     - Notifica si hay conciertos nuevos en Finlandia (eventos raros y especiales)
@@ -363,6 +401,7 @@ def decide_should_notify(
     - Envía reporte semanal completo los domingos independientemente
     """
     from datetime import date
+
     today = date.today()
 
     # Reporte semanal los domingos siempre

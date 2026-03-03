@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class DynamoDBClient:
     """
     Cliente de DynamoDB para el proyecto Metal Travel Tracker.
-    
+
     Uso:
         db = DynamoDBClient(table_name="metal-concerts-prod")
         db.save_concert(concert)
@@ -44,7 +44,9 @@ class DynamoDBClient:
         else:
             self._table_name = f"{table_name}-{env}"
 
-        dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+        dynamodb = boto3.resource(
+            "dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1")
+        )
         self._table = dynamodb.Table(self._table_name)
 
     # -------------------------------------------------------------------
@@ -55,7 +57,7 @@ class DynamoDBClient:
         """
         Guarda un concierto en DynamoDB.
         Si ya existe (mismo unique_key), actualiza en lugar de duplicar.
-        
+
         Returns:
             True si se guardó exitosamente.
         """
@@ -75,7 +77,7 @@ class DynamoDBClient:
     def exists(self, unique_key: str) -> bool:
         """
         Verifica si un concierto ya existe para evitar duplicados.
-        
+
         Args:
             unique_key: El campo unique_key del modelo Concert.
         """
@@ -97,12 +99,12 @@ class DynamoDBClient:
     ) -> list[dict]:
         """
         Obtiene conciertos futuros desde DynamoDB.
-        
+
         Args:
             country:        Código de país (ej: "CO", "CL"). None = todos.
             days_ahead:     Cuántos días hacia el futuro buscar.
             min_confidence: Confianza mínima (relevante para fuentes Tier 3).
-            
+
         Returns:
             Lista de items de DynamoDB (dicts).
         """
@@ -114,13 +116,15 @@ class DynamoDBClient:
                 # Buscar por país específico (pk)
                 response = self._table.query(
                     KeyConditionExpression=(
-                        Key("pk").eq(f"CONCERT#{country}") &
-                        Key("sk").between(
+                        Key("pk").eq(f"CONCERT#{country}")
+                        & Key("sk").between(
                             f"{today.strftime('%Y-%m-%d')}",
                             f"{max_date.strftime('%Y-%m-%d')}~",
                         )
                     ),
-                    FilterExpression=Attr("confidence").gte(Decimal(str(min_confidence))),
+                    FilterExpression=Attr("confidence").gte(
+                        Decimal(str(min_confidence))
+                    ),
                 )
             else:
                 # Scan de todos los países (menos eficiente, usar con moderación)
@@ -129,8 +133,8 @@ class DynamoDBClient:
                         Attr("event_date").between(
                             today.strftime("%Y-%m-%d"),
                             max_date.strftime("%Y-%m-%d"),
-                        ) &
-                        Attr("confidence").gte(Decimal(str(min_confidence)))
+                        )
+                        & Attr("confidence").gte(Decimal(str(min_confidence)))
                     )
                 )
 
@@ -148,8 +152,8 @@ class DynamoDBClient:
         try:
             response = self._table.scan(
                 FilterExpression=(
-                    Attr("flight_searched").not_exists() &
-                    Attr("event_date").gte(
+                    Attr("flight_searched").not_exists()
+                    & Attr("event_date").gte(
                         (date.today() + timedelta(days=14)).strftime("%Y-%m-%d")
                     )
                 )
@@ -177,7 +181,9 @@ class DynamoDBClient:
                     ExpressionAttributeValues={":date": today},
                 )
         except Exception as e:
-            logger.warning(f"Error marcando flight_searched para {concert_unique_key}: {e}")
+            logger.warning(
+                f"Error marcando flight_searched para {concert_unique_key}: {e}"
+            )
 
     # -------------------------------------------------------------------
     # Operaciones de Precios Históricos (para análisis de deals)
@@ -189,15 +195,17 @@ class DynamoDBClient:
         El histórico se usa para calcular si el precio actual es un deal.
         """
         try:
-            self._table.put_item(Item={
-                "pk":              f"PRICE#{flight.origin}#{flight.destination}",
-                "sk":              flight.found_at.isoformat(),
-                "price_usd":       Decimal(str(flight.price_usd)),
-                "airline":         flight.airline,
-                "departure_date":  flight.departure_date.isoformat(),
-                "source":          flight.source,
-                "ttl":             int((datetime.utcnow() + timedelta(days=90)).timestamp()),
-            })
+            self._table.put_item(
+                Item={
+                    "pk": f"PRICE#{flight.origin}#{flight.destination}",
+                    "sk": flight.found_at.isoformat(),
+                    "price_usd": Decimal(str(flight.price_usd)),
+                    "airline": flight.airline,
+                    "departure_date": flight.departure_date.isoformat(),
+                    "source": flight.source,
+                    "ttl": int((datetime.utcnow() + timedelta(days=90)).timestamp()),
+                }
+            )
             return True
         except Exception as e:
             logger.error(f"Error guardando precio de vuelo: {e}")
@@ -211,7 +219,7 @@ class DynamoDBClient:
     ) -> list[float]:
         """
         Obtiene precios históricos de una ruta para calcular percentiles.
-        
+
         Returns:
             Lista de precios en USD de los últimos N días.
         """
@@ -220,13 +228,15 @@ class DynamoDBClient:
         try:
             response = self._table.query(
                 KeyConditionExpression=(
-                    Key("pk").eq(f"PRICE#{origin}#{destination}") &
-                    Key("sk").gte(from_date)
+                    Key("pk").eq(f"PRICE#{origin}#{destination}")
+                    & Key("sk").gte(from_date)
                 )
             )
             return [float(item["price_usd"]) for item in response.get("Items", [])]
         except Exception as e:
-            logger.error(f"Error consultando precios históricos {origin}→{destination}: {e}")
+            logger.error(
+                f"Error consultando precios históricos {origin}→{destination}: {e}"
+            )
             return []
 
     # -------------------------------------------------------------------

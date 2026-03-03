@@ -97,8 +97,8 @@ class TestAnalyzeDealQuality:
 
     def test_rutas_independientes(self):
         """El histórico de LIM→BOG no afecta el análisis de LIM→SCL."""
-        historical_bog = [400, 450, 500] * 5   # Más barato
-        historical_scl = [800, 850, 900] * 5   # Más caro
+        historical_bog = [400, 450, 500] * 5  # Más barato
+        historical_scl = [800, 850, 900] * 5  # Más caro
 
         mock_db = MagicMock()
 

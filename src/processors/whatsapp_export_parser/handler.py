@@ -49,16 +49,16 @@ def lambda_handler(event: dict, context) -> dict:
     """
     logger.info(f"Evento recibido: {json.dumps(event)}")
 
-    s3_client    = boto3.client("s3")
-    bedrock      = BedrockClient()
-    dynamodb     = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
+    s3_client = boto3.client("s3")
+    bedrock = BedrockClient()
+    dynamodb = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
 
     processed_count = 0
-    new_concerts    = 0
+    new_concerts = 0
 
     for record in event.get("Records", []):
         bucket = record["s3"]["bucket"]["name"]
-        key    = record["s3"]["object"]["key"]
+        key = record["s3"]["object"]["key"]
 
         logger.info(f"Procesando archivo: s3://{bucket}/{key}")
 
@@ -93,13 +93,15 @@ def lambda_handler(event: dict, context) -> dict:
                 if not dynamodb.exists(concert.unique_key):
                     dynamodb.save_concert(concert)
                     new_concerts += 1
-                    logger.info(f"Nuevo concierto guardado: {concert.band_name} en {concert.city} el {concert.event_date_str}")
+                    logger.info(
+                        f"Nuevo concierto guardado: {concert.band_name} en {concert.city} el {concert.event_date_str}"
+                    )
 
     result = {
-        "statusCode":       200,
+        "statusCode": 200,
         "processed_messages": processed_count,
-        "new_concerts":     new_concerts,
-        "source":           "whatsapp_colombia",
+        "new_concerts": new_concerts,
+        "source": "whatsapp_colombia",
     }
 
     logger.info(f"Procesamiento completado: {result}")
@@ -115,14 +117,15 @@ def lambda_handler(event: dict, context) -> dict:
 # Extracción de mensajes del .txt de WhatsApp
 # ---------------------------------------------------------------------------
 
+
 def extract_messages(raw_text: str) -> list[str]:
     """
     Extrae el contenido de cada mensaje del archivo .txt exportado.
     Maneja mensajes multilínea correctamente.
-    
+
     Args:
         raw_text: Contenido completo del archivo exportado.
-        
+
     Returns:
         Lista de textos de mensajes (solo el contenido, sin fecha/autor).
     """
@@ -157,15 +160,18 @@ def extract_messages(raw_text: str) -> list[str]:
 # Procesamiento con LLM (Bedrock)
 # ---------------------------------------------------------------------------
 
-def process_message_with_llm(message_text: str, bedrock: BedrockClient) -> Concert | None:
+
+def process_message_with_llm(
+    message_text: str, bedrock: BedrockClient
+) -> Concert | None:
     """
     Llama a Bedrock para extraer información estructurada de conciertos
     de un mensaje de WhatsApp en lenguaje natural e informal.
-    
+
     Args:
         message_text: Texto del mensaje a analizar.
         bedrock:      Cliente de Bedrock configurado.
-        
+
     Returns:
         Objeto Concert si se encontró información válida, None si no.
     """
@@ -203,14 +209,14 @@ Reglas importantes:
 
     try:
         response_text = bedrock.invoke(prompt, max_tokens=600)
-        
+
         # Limpiar posibles artefactos de markdown
         clean_response = response_text.strip()
         if clean_response.startswith("```"):
             clean_response = clean_response.split("```")[1]
             if clean_response.startswith("json"):
                 clean_response = clean_response[4:]
-        
+
         data = json.loads(clean_response)
 
         # Validar que sea un anuncio válido con suficiente confianza
@@ -218,12 +224,16 @@ Reglas importantes:
             return None
 
         if data.get("confidence", 0) < 0.7:
-            logger.info(f"Mensaje descartado por baja confianza ({data.get('confidence')}): {message_text[:60]}...")
+            logger.info(
+                f"Mensaje descartado por baja confianza ({data.get('confidence')}): {message_text[:60]}..."
+            )
             return None
 
         # Manejar cancelaciones
         if data.get("is_cancellation"):
-            logger.info(f"Cancelación detectada: {data.get('band_name')} - se manejará por separado")
+            logger.info(
+                f"Cancelación detectada: {data.get('band_name')} - se manejará por separado"
+            )
             # TODO: Implementar lógica de cancelaciones (marcar concierto como cancelado en DynamoDB)
             return None
 
@@ -239,6 +249,7 @@ Reglas importantes:
             return None
 
         from datetime import date
+
         try:
             event_date = date.fromisoformat(event_date_str)
         except ValueError:
@@ -265,7 +276,9 @@ Reglas importantes:
         )
 
     except json.JSONDecodeError as e:
-        logger.warning(f"Respuesta de Bedrock no es JSON válido: {e}. Mensaje: {message_text[:60]}...")
+        logger.warning(
+            f"Respuesta de Bedrock no es JSON válido: {e}. Mensaje: {message_text[:60]}..."
+        )
         return None
     except Exception as e:
         logger.error(f"Error procesando mensaje con LLM: {e}")
@@ -275,6 +288,7 @@ Reglas importantes:
 # ---------------------------------------------------------------------------
 # Utilidades
 # ---------------------------------------------------------------------------
+
 
 def _is_system_message(text: str) -> bool:
     """Detecta mensajes de sistema de WhatsApp (no son mensajes de usuarios)."""
@@ -293,23 +307,25 @@ def _is_system_message(text: str) -> bool:
 def _notify_discord(new_count: int, bucket: str, key: str):
     """Notifica por Discord que se procesó un nuevo export de WhatsApp."""
     import urllib.request
-    
+
     webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not webhook_url:
         return
 
     filename = key.split("/")[-1]
     message = {
-        "embeds": [{
-            "title": "📱 Export de WhatsApp procesado",
-            "description": (
-                f"Se procesó el archivo `{filename}` y se encontraron "
-                f"**{new_count} conciertos nuevos** en Colombia 🇨🇴\n\n"
-                "El Orchestrator Agent buscará vuelos y alojamiento para estos eventos."
-            ),
-            "color": 0xFF6600,
-            "footer": {"text": "Metal Travel Tracker — WhatsApp Colombia"},
-        }]
+        "embeds": [
+            {
+                "title": "📱 Export de WhatsApp procesado",
+                "description": (
+                    f"Se procesó el archivo `{filename}` y se encontraron "
+                    f"**{new_count} conciertos nuevos** en Colombia 🇨🇴\n\n"
+                    "El Orchestrator Agent buscará vuelos y alojamiento para estos eventos."
+                ),
+                "color": 0xFF6600,
+                "footer": {"text": "Metal Travel Tracker — WhatsApp Colombia"},
+            }
+        ]
     }
 
     try:

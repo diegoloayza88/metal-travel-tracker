@@ -25,45 +25,112 @@ from src.plugins.base import ConcertSourcePlugin
 # sin redeploy.
 MONITORED_BANDS = [
     # Black Metal
-    "Mayhem", "Emperor", "Immortal", "Satyricon", "1349", "Blood Fire Death",
-    "Gorgoroth", "Marduk", "Dark Funeral", "Watain", "Behemoth", "Batushka",
-    "Mgła", "Wolves in the Throne Room", "Deafheaven", "Batushka", "Satanic Warmaster",
-    "Warmoon Lord", "Baxaxaxa", "Nargaroth", "Mortuary Drape", "Horna"
+    "Mayhem",
+    "Emperor",
+    "Immortal",
+    "Satyricon",
+    "1349",
+    "Blood Fire Death",
+    "Gorgoroth",
+    "Marduk",
+    "Dark Funeral",
+    "Watain",
+    "Behemoth",
+    "Batushka",
+    "Mgła",
+    "Wolves in the Throne Room",
+    "Deafheaven",
+    "Batushka",
+    "Satanic Warmaster",
+    "Warmoon Lord",
+    "Baxaxaxa",
+    "Nargaroth",
+    "Mortuary Drape",
+    "Horna"
     # Death Metal
-    "Death", "Obituary", "Cannibal Corpse", "Morbid Angel", "Deicide",
-    "Suffocation", "Nile", "Dying Fetus", "Bolt Thrower", "Autopsy",
-    "Carcass", "Napalm Death", "Entombed", "Dismember", "Messiah", "Grave"
+    "Death",
+    "Obituary",
+    "Cannibal Corpse",
+    "Morbid Angel",
+    "Deicide",
+    "Suffocation",
+    "Nile",
+    "Dying Fetus",
+    "Bolt Thrower",
+    "Autopsy",
+    "Carcass",
+    "Napalm Death",
+    "Entombed",
+    "Dismember",
+    "Messiah",
+    "Grave"
     # Thrash Metal
-    "Metallica", "Megadeth", "Slayer", "Anthrax", "Testament", "Exodus",
-    "Death Angel", "Overkill", "Kreator", "Sodom", "Destruction", "Sepultura",
-    "Nuclear Assault", "Flotsam and Jetsam",
+    "Metallica",
+    "Megadeth",
+    "Slayer",
+    "Anthrax",
+    "Testament",
+    "Exodus",
+    "Death Angel",
+    "Overkill",
+    "Kreator",
+    "Sodom",
+    "Destruction",
+    "Sepultura",
+    "Nuclear Assault",
+    "Flotsam and Jetsam",
     # Heavy Metal clásico
-    "Iron Maiden", "Judas Priest", "Black Sabbath", "Dio", "Accept",
-    "Saxon", "Motörhead", "Venom", "Diamond Head", "Ambush", "Eternal Champion",
-    "Sumerlands", "High Spirits", "Savage Master", "Metal Church", "Crimson Glory"
+    "Iron Maiden",
+    "Judas Priest",
+    "Black Sabbath",
+    "Dio",
+    "Accept",
+    "Saxon",
+    "Motörhead",
+    "Venom",
+    "Diamond Head",
+    "Ambush",
+    "Eternal Champion",
+    "Sumerlands",
+    "High Spirits",
+    "Savage Master",
+    "Metal Church",
+    "Crimson Glory"
     # War Metal
-    "Blasphemy", "Bestial Warlust", "Archgoat", "Impiety", "Conqueror", "Revenge"
+    "Blasphemy",
+    "Bestial Warlust",
+    "Archgoat",
+    "Impiety",
+    "Conqueror",
+    "Revenge"
     # Bandas latinoamericanas relevantes
-    "Sepultura", "Sarcófago", "Krisiun", "Nervosa", "Lacuna Coil",
-    "Rata Blanca", "Helker", "Horcas", "Impurity"
+    "Sepultura",
+    "Sarcófago",
+    "Krisiun",
+    "Nervosa",
+    "Lacuna Coil",
+    "Rata Blanca",
+    "Helker",
+    "Horcas",
+    "Impurity",
 ]
 
 # Países mapeados a códigos de localización para filtrar
 COUNTRY_FILTERS = {
-    Country.COLOMBIA:       ["Bogotá", "Medellín", "Colombia"],
-    Country.CHILE:          ["Santiago", "Chile"],
-    Country.BRAZIL:         ["São Paulo", "Rio de Janeiro", "Brazil", "Brasil"],
-    Country.UNITED_STATES:  ["United States", "USA"],
-    Country.MEXICO:         ["Mexico City", "Ciudad de México", "Mexico"],
-    Country.FINLAND:        ["Helsinki", "Finland", "Finlandia"],
-    Country.SPAIN:          ["Madrid", "Barcelona", "Spain", "España"],
+    Country.COLOMBIA: ["Bogotá", "Medellín", "Colombia"],
+    Country.CHILE: ["Santiago", "Chile"],
+    Country.BRAZIL: ["São Paulo", "Rio de Janeiro", "Brazil", "Brasil"],
+    Country.UNITED_STATES: ["United States", "USA"],
+    Country.MEXICO: ["Mexico City", "Ciudad de México", "Mexico"],
+    Country.FINLAND: ["Helsinki", "Finland", "Finlandia"],
+    Country.SPAIN: ["Madrid", "Barcelona", "Spain", "España"],
 }
 
 
 class BandsintownPlugin(ConcertSourcePlugin):
     """
     Plugin de Bandsintown que busca conciertos por artista y filtra por país.
-    
+
     Estrategia diferente a Songkick: en lugar de buscar por ciudad,
     busca los próximos shows de una lista curada de bandas de metal.
     Esto garantiza resultados relevantes de género.
@@ -109,7 +176,7 @@ class BandsintownPlugin(ConcertSourcePlugin):
             # Procesar en lotes de 20 bandas para no saturar la API
             batch_size = 20
             for i in range(0, len(MONITORED_BANDS), batch_size):
-                batch = MONITORED_BANDS[i:i + batch_size]
+                batch = MONITORED_BANDS[i : i + batch_size]
                 tasks = [
                     self._fetch_artist_events(client, band, from_date, to_date)
                     for band in batch
@@ -123,7 +190,9 @@ class BandsintownPlugin(ConcertSourcePlugin):
 
                     # Filtrar eventos por países de interés
                     for event in result:
-                        if self._is_in_target_countries(event, countries, location_keywords):
+                        if self._is_in_target_countries(
+                            event, countries, location_keywords
+                        ):
                             concerts.append(event)
 
                 # Pequeña pausa entre lotes
@@ -178,13 +247,15 @@ class BandsintownPlugin(ConcertSourcePlugin):
     def _parse_event(self, event: dict, band_name: str) -> Concert | None:
         """Convierte un evento de Bandsintown a nuestro modelo Concert."""
         try:
-            date_str = event.get("datetime", "")[:10]  # "YYYY-MM-DDTHH:MM:SS" → "YYYY-MM-DD"
+            date_str = event.get("datetime", "")[
+                :10
+            ]  # "YYYY-MM-DDTHH:MM:SS" → "YYYY-MM-DD"
             if not date_str:
                 return None
             event_date = date.fromisoformat(date_str)
 
             venue = event.get("venue", {})
-            city       = venue.get("city", "")
+            city = venue.get("city", "")
             country_str = venue.get("country", "")
             venue_name = venue.get("name", "TBD")
 
@@ -194,7 +265,9 @@ class BandsintownPlugin(ConcertSourcePlugin):
                 return None
 
             # Determinar tipo de evento
-            event_type = EventType.FESTIVAL if event.get("festival") else EventType.CONCERT
+            event_type = (
+                EventType.FESTIVAL if event.get("festival") else EventType.CONCERT
+            )
 
             return Concert(
                 band_name=band_name,

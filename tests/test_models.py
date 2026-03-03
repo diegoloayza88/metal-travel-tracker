@@ -48,7 +48,7 @@ class TestConcertModel:
     def test_unique_key_diferente_por_pais(self):
         """Misma banda, misma fecha, diferente país → unique_key diferente."""
         colombia = self.make_concert(country=Country.COLOMBIA)
-        chile    = self.make_concert(country=Country.CHILE)
+        chile = self.make_concert(country=Country.CHILE)
         assert colombia.unique_key != chile.unique_key
 
     def test_days_until_event(self):
@@ -110,7 +110,8 @@ class TestTravelDealModel:
         flight = None
         if flight_price:
             flight = Flight(
-                origin="LIM", destination="SCL",
+                origin="LIM",
+                destination="SCL",
                 departure_date=date(2026, 9, 18),
                 return_date=date(2026, 9, 22),
                 price_usd=flight_price,
@@ -121,6 +122,7 @@ class TestTravelDealModel:
             )
 
         from src.models.concert import Hotel
+
         hotel = None
         if hotel_price:
             hotel = Hotel(

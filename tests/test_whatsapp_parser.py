@@ -22,6 +22,7 @@ from src.processors.whatsapp_export_parser.handler import (
 # Tests de extracción de mensajes del .txt de WhatsApp
 # ---------------------------------------------------------------------------
 
+
 class TestExtractMessages:
     """Tests para la función extract_messages()"""
 
@@ -92,6 +93,7 @@ class TestExtractMessages:
 # Tests del procesador LLM (Bedrock mockeado)
 # ---------------------------------------------------------------------------
 
+
 class TestProcessMessageWithLLM:
     """Tests para process_message_with_llm() con Bedrock mockeado."""
 
@@ -103,20 +105,22 @@ class TestProcessMessageWithLLM:
 
     def test_detecta_concierto_valido(self):
         """Detecta correctamente un anuncio de concierto con alta confianza."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": True,
-            "band_name":    "Watain",
-            "festival_name": None,
-            "event_date":   f"{date.today().year + 1}-04-20",
-            "city":         "Bogotá",
-            "venue":        "Teatro Royal",
-            "ticket_price_cop": 80000,
-            "ticket_url":   "https://tuboleta.com/watain",
-            "is_cancellation": False,
-            "genres":       ["black_metal"],
-            "confidence":   0.95,
-            "notes":        "Fecha confirmada por el promotor",
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": True,
+                "band_name": "Watain",
+                "festival_name": None,
+                "event_date": f"{date.today().year + 1}-04-20",
+                "city": "Bogotá",
+                "venue": "Teatro Royal",
+                "ticket_price_cop": 80000,
+                "ticket_url": "https://tuboleta.com/watain",
+                "is_cancellation": False,
+                "genres": ["black_metal"],
+                "confidence": 0.95,
+                "notes": "Fecha confirmada por el promotor",
+            }
+        )
 
         concert = process_message_with_llm(
             "CONFIRMADO Watain en Bogotá 20 de abril, Teatro Royal. Entradas $80.000",
@@ -132,10 +136,12 @@ class TestProcessMessageWithLLM:
 
     def test_descarta_mensaje_no_concierto(self):
         """No crea Concert para mensajes que no son anuncios de conciertos."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": False,
-            "confidence": 0.1,
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": False,
+                "confidence": 0.1,
+            }
+        )
 
         concert = process_message_with_llm(
             "¿Alguien tiene la discografía de Immortal?",
@@ -145,13 +151,15 @@ class TestProcessMessageWithLLM:
 
     def test_descarta_baja_confianza(self):
         """No crea Concert cuando la confianza del LLM es menor a 0.7."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": True,
-            "band_name":   "Alguna Banda",
-            "event_date":  "2026-06-01",
-            "city":        "Bogotá",
-            "confidence":  0.5,  # Por debajo del umbral
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": True,
+                "band_name": "Alguna Banda",
+                "event_date": "2026-06-01",
+                "city": "Bogotá",
+                "confidence": 0.5,  # Por debajo del umbral
+            }
+        )
 
         concert = process_message_with_llm(
             "Creo que van a venir a tocar pronto...",
@@ -161,14 +169,16 @@ class TestProcessMessageWithLLM:
 
     def test_descarta_cancelacion(self):
         """No crea Concert para mensajes de cancelación."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": True,
-            "band_name":       "Obituary",
-            "event_date":      "2026-05-15",
-            "city":            "Medellín",
-            "is_cancellation": True,
-            "confidence":      0.92,
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": True,
+                "band_name": "Obituary",
+                "event_date": "2026-05-15",
+                "city": "Medellín",
+                "is_cancellation": True,
+                "confidence": 0.92,
+            }
+        )
 
         concert = process_message_with_llm(
             "OJO: Obituary CANCELA su fecha en Medellín por problemas de visa",
@@ -178,13 +188,15 @@ class TestProcessMessageWithLLM:
 
     def test_descarta_fecha_pasada(self):
         """No crea Concert para eventos cuya fecha ya pasó."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": True,
-            "band_name":   "Kreator",
-            "event_date":  "2020-01-01",  # Fecha pasada
-            "city":        "Bogotá",
-            "confidence":  0.9,
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": True,
+                "band_name": "Kreator",
+                "event_date": "2020-01-01",  # Fecha pasada
+                "city": "Bogotá",
+                "confidence": 0.9,
+            }
+        )
 
         concert = process_message_with_llm(
             "Kreator estuvo increíble en Bogotá el año pasado",
@@ -202,16 +214,18 @@ class TestProcessMessageWithLLM:
 
     def test_festival_usa_festival_name(self):
         """Para festivales sin banda headliner, usa el nombre del festival."""
-        bedrock = self._mock_bedrock({
-            "is_concert_announcement": True,
-            "band_name":    None,
-            "festival_name": "Metal Devastation Festival",
-            "event_date":   "2026-08-10",
-            "city":         "Medellín",
-            "venue":        "Parque Norte",
-            "confidence":   0.88,
-            "is_cancellation": False,
-        })
+        bedrock = self._mock_bedrock(
+            {
+                "is_concert_announcement": True,
+                "band_name": None,
+                "festival_name": "Metal Devastation Festival",
+                "event_date": "2026-08-10",
+                "city": "Medellín",
+                "venue": "Parque Norte",
+                "confidence": 0.88,
+                "is_cancellation": False,
+            }
+        )
 
         concert = process_message_with_llm(
             "Metal Devastation Festival confirmado para agosto en Medellín!",
@@ -225,6 +239,7 @@ class TestProcessMessageWithLLM:
 # ---------------------------------------------------------------------------
 # Tests de integración del Lambda handler (con moto)
 # ---------------------------------------------------------------------------
+
 
 class TestLambdaHandler:
     """Tests del handler completo usando mocks de AWS."""

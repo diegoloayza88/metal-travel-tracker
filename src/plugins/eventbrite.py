@@ -21,13 +21,13 @@ from src.plugins.base import ConcertSourcePlugin
 
 # Mapeo de países a slugs de Eventbrite
 EVENTBRITE_COUNTRY_SLUGS: dict[Country, str] = {
-    Country.COLOMBIA:      "CO",
-    Country.CHILE:         "CL",
-    Country.BRAZIL:        "BR",
+    Country.COLOMBIA: "CO",
+    Country.CHILE: "CL",
+    Country.BRAZIL: "BR",
     Country.UNITED_STATES: "US",
-    Country.MEXICO:        "MX",
-    Country.FINLAND:       "FI",
-    Country.SPAIN:         "ES",
+    Country.MEXICO: "MX",
+    Country.FINLAND: "FI",
+    Country.SPAIN: "ES",
 }
 
 # Keywords para buscar en Eventbrite
@@ -91,7 +91,9 @@ class EventbritePlugin(ConcertSourcePlugin):
 
                 # Buscar con múltiples términos en paralelo
                 tasks = [
-                    self._search_events(client, term, country_code, country, from_date, to_date)
+                    self._search_events(
+                        client, term, country_code, country, from_date, to_date
+                    )
                     for term in METAL_SEARCH_TERMS
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -128,21 +130,25 @@ class EventbritePlugin(ConcertSourcePlugin):
         concerts = []
 
         # Formatear fechas en ISO 8601 con timezone UTC (requerido por Eventbrite)
-        start_str = datetime.combine(from_date, datetime.min.time()).replace(
-            tzinfo=timezone.utc
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_str = datetime.combine(to_date, datetime.min.time()).replace(
-            tzinfo=timezone.utc
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        start_str = (
+            datetime.combine(from_date, datetime.min.time())
+            .replace(tzinfo=timezone.utc)
+            .strftime("%Y-%m-%dT%H:%M:%SZ")
+        )
+        end_str = (
+            datetime.combine(to_date, datetime.min.time())
+            .replace(tzinfo=timezone.utc)
+            .strftime("%Y-%m-%dT%H:%M:%SZ")
+        )
 
         params = {
-            "q":                    search_term,
-            "location.country":     country_code,
-            "categories":           self.MUSIC_CATEGORY_ID,
+            "q": search_term,
+            "location.country": country_code,
+            "categories": self.MUSIC_CATEGORY_ID,
             "start_date.range_start": start_str,
-            "start_date.range_end":   end_str,
-            "expand":               "venue",
-            "page_size":            50,
+            "start_date.range_end": end_str,
+            "expand": "venue",
+            "page_size": 50,
         }
 
         try:
@@ -183,14 +189,16 @@ class EventbritePlugin(ConcertSourcePlugin):
 
             # Fecha de inicio
             start = event.get("start", {})
-            local_date_str = start.get("local", "")[:10]  # "YYYY-MM-DDTHH:MM:SS" → "YYYY-MM-DD"
+            local_date_str = start.get("local", "")[
+                :10
+            ]  # "YYYY-MM-DDTHH:MM:SS" → "YYYY-MM-DD"
             if not local_date_str:
                 return None
             event_date = date.fromisoformat(local_date_str)
 
             # Venue
             venue_data = event.get("venue", {})
-            city       = venue_data.get("address", {}).get("city", "")
+            city = venue_data.get("address", {}).get("city", "")
             venue_name = venue_data.get("name", "TBD")
 
             # Tipo de evento

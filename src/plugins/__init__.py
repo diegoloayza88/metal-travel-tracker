@@ -33,6 +33,7 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
     con un warning en lugar de fallar el proceso.
     """
     import logging
+
     logger = logging.getLogger(__name__)
 
     plugin_classes = [
@@ -48,7 +49,9 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
             plugin = PluginClass()
             if plugin.is_enabled:
                 active.append(plugin)
-                logger.info(f"Plugin cargado: {plugin.source_name} (Tier {plugin.reliability_tier})")
+                logger.info(
+                    f"Plugin cargado: {plugin.source_name} (Tier {plugin.reliability_tier})"
+                )
         except EnvironmentError as e:
             logger.warning(f"Plugin {PluginClass.__name__} no disponible: {e}")
         except Exception as e:

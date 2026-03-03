@@ -35,7 +35,7 @@ Tono preferido: entusiasta pero directo, como un amigo metalero informándote.
 def lambda_handler(event: dict, context) -> dict:
     """
     Entry point del Reporter Agent.
-    
+
     Event params:
         new_concerts_count: Cantidad de conciertos nuevos encontrados hoy.
         flight_deals:       Lista de deals de vuelos (pueden estar vacíos).
@@ -44,14 +44,14 @@ def lambda_handler(event: dict, context) -> dict:
     """
     logger.info(f"Reporter Agent iniciado: {json.dumps(event)}")
 
-    bedrock    = BedrockClient()
-    dynamodb   = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
-    notifier   = NotificationService()
+    bedrock = BedrockClient()
+    dynamodb = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
+    notifier = NotificationService()
 
     new_concerts_count = event.get("new_concerts_count", 0)
-    flight_deals       = event.get("flight_deals", [])
-    report_date        = event.get("report_date", date.today().isoformat())
-    is_weekly          = event.get("is_weekly_report", False)
+    flight_deals = event.get("flight_deals", [])
+    report_date = event.get("report_date", date.today().isoformat())
+    is_weekly = event.get("is_weekly_report", False)
 
     # -------------------------------------------------------------------
     # Recopilar datos para el reporte
@@ -106,16 +106,17 @@ def lambda_handler(event: dict, context) -> dict:
     logger.info(f"Notificaciones enviadas: {results}")
 
     return {
-        "statusCode":       200,
+        "statusCode": 200,
         "report_generated": True,
-        "notifications":    results,
-        "report_length":    len(report_text),
+        "notifications": results,
+        "report_length": len(report_text),
     }
 
 
 # ---------------------------------------------------------------------------
 # Generación del reporte con LLM
 # ---------------------------------------------------------------------------
+
 
 def generate_report(
     bedrock: BedrockClient,
@@ -131,18 +132,25 @@ def generate_report(
     """
 
     # Serializar los datos para el prompt
-    deals_summary = json.dumps(flight_deals, indent=2, ensure_ascii=False) if flight_deals else "Ninguno"
+    deals_summary = (
+        json.dumps(flight_deals, indent=2, ensure_ascii=False)
+        if flight_deals
+        else "Ninguno"
+    )
     concerts_summary = ""
     if upcoming_concerts:
         concerts_summary = json.dumps(
-            [{
-                "banda":   c.get("band_name", ""),
-                "fecha":   c.get("event_date", ""),
-                "ciudad":  c.get("city", ""),
-                "país":    c.get("country", ""),
-                "venue":   c.get("venue", ""),
-                "fuente":  c.get("source", ""),
-            } for c in upcoming_concerts[:20]],
+            [
+                {
+                    "banda": c.get("band_name", ""),
+                    "fecha": c.get("event_date", ""),
+                    "ciudad": c.get("city", ""),
+                    "país": c.get("country", ""),
+                    "venue": c.get("venue", ""),
+                    "fuente": c.get("source", ""),
+                }
+                for c in upcoming_concerts[:20]
+            ],
             indent=2,
             ensure_ascii=False,
         )
@@ -231,6 +239,7 @@ def generate_fallback_report(
 # Helpers de formato para cada canal
 # ---------------------------------------------------------------------------
 
+
 def generate_sms_summary(flight_deals: list[dict], new_concerts: int) -> str:
     """
     Genera un SMS corto (máximo 160 caracteres).
@@ -260,8 +269,8 @@ def build_email_subject(
     if flight_deals:
         best = flight_deals[0]
         quality = best.get("deal_quality", "DEAL")
-        dest    = best.get("destination", "")
-        price   = best.get("price_usd", 0)
+        dest = best.get("destination", "")
+        price = best.get("price_usd", 0)
         return f"🤘 {quality}: LIM→{dest} ${price} USD — {report_date}"
     elif new_concerts > 0:
         return f"🤘 {new_concerts} conciertos nuevos en tu radar — {report_date}"
@@ -269,7 +278,9 @@ def build_email_subject(
         return f"🤘 Metal Travel Tracker — Reporte {report_date}"
 
 
-def build_discord_message(report_text: str, flight_deals: list[dict], report_date: str) -> dict:
+def build_discord_message(
+    report_text: str, flight_deals: list[dict], report_date: str
+) -> dict:
     """
     Construye el payload del webhook de Discord con embeds.
     Discord soporta Markdown y embeds con color.
@@ -289,33 +300,35 @@ def build_discord_message(report_text: str, flight_deals: list[dict], report_dat
     description = report_text[:4000] if len(report_text) > 4000 else report_text
 
     payload = {
-        "username":   "Metal Travel Tracker 🤘",
+        "username": "Metal Travel Tracker 🤘",
         "avatar_url": "https://i.imgur.com/metal_placeholder.png",
-        "embeds": [{
-            "title":       f"🤘 Metal Travel Report — {report_date}",
-            "description": description,
-            "color":       embed_color,
-            "footer": {
-                "text": "Metal Travel Tracker • Lima, Perú → El mundo"
-            },
-        }],
+        "embeds": [
+            {
+                "title": f"🤘 Metal Travel Report — {report_date}",
+                "description": description,
+                "color": embed_color,
+                "footer": {"text": "Metal Travel Tracker • Lima, Perú → El mundo"},
+            }
+        ],
     }
 
     # Agregar fields individuales para cada deal (más visual en Discord)
     if flight_deals:
         fields = []
         for deal in flight_deals[:3]:  # Máximo 3 deals como fields
-            fields.append({
-                "name":   f"✈️ LIM → {deal.get('destination')} | {deal.get('deal_quality')}",
-                "value": (
-                    f"**${deal.get('price_usd')} USD** "
-                    f"({deal.get('discount_pct', 0):.1f}% bajo promedio)\n"
-                    f"🗓️ Salida: {deal.get('departure_date')} | Regreso: {deal.get('return_date', 'N/A')}\n"
-                    f"✈️ {deal.get('airline', 'N/A')}\n"
-                    f"[Reservar aquí]({deal.get('booking_url', '#')})"
-                ),
-                "inline": False,
-            })
+            fields.append(
+                {
+                    "name": f"✈️ LIM → {deal.get('destination')} | {deal.get('deal_quality')}",
+                    "value": (
+                        f"**${deal.get('price_usd')} USD** "
+                        f"({deal.get('discount_pct', 0):.1f}% bajo promedio)\n"
+                        f"🗓️ Salida: {deal.get('departure_date')} | Regreso: {deal.get('return_date', 'N/A')}\n"
+                        f"✈️ {deal.get('airline', 'N/A')}\n"
+                        f"[Reservar aquí]({deal.get('booking_url', '#')})"
+                    ),
+                    "inline": False,
+                }
+            )
         payload["embeds"][0]["fields"] = fields
 
     return payload
@@ -327,10 +340,11 @@ def markdown_to_html(text: str) -> str:
     Para producción considera usar la librería `markdown` de Python.
     """
     import re
+
     html = text
     # Headers
     html = re.sub(r"^## (.+)$", r"<h2>\1</h2>", html, flags=re.MULTILINE)
-    html = re.sub(r"^# (.+)$",  r"<h1>\1</h1>", html, flags=re.MULTILINE)
+    html = re.sub(r"^# (.+)$", r"<h1>\1</h1>", html, flags=re.MULTILINE)
     # Bold
     html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
     # Saltos de línea

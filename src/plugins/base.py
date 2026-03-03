@@ -23,7 +23,7 @@ class ConcertSourcePlugin(ABC):
     Interfaz base para todos los conectores de fuentes de conciertos.
 
     Ejemplo de implementación mínima:
-    
+
         class MyPlugin(ConcertSourcePlugin):
             @property
             def source_name(self) -> str:
@@ -127,15 +127,31 @@ class ConcertSourcePlugin(ABC):
         """
         metal_keywords = {
             # Géneros directos
-            "black metal", "death metal", "war metal", "heavy metal", "thrash metal",
+            "black metal",
+            "death metal",
+            "war metal",
+            "heavy metal",
+            "thrash metal",
             # Variantes comunes
-            "blackmetal", "deathmetal", "thrash", "black/death", "death/black",
+            "blackmetal",
+            "deathmetal",
+            "thrash",
+            "black/death",
+            "death/black",
             # Subgéneros que queremos capturar
-            "doom metal", "power metal", "speed metal", "grindcore",
-            "brutal death", "technical death", "melodic death",
-            "symphonic black", "raw black", "atmospheric black",
+            "doom metal",
+            "power metal",
+            "speed metal",
+            "grindcore",
+            "brutal death",
+            "technical death",
+            "melodic death",
+            "symphonic black",
+            "raw black",
+            "atmospheric black",
             # Términos generales de metal extremo
-            "extreme metal", "metal extremo",
+            "extreme metal",
+            "metal extremo",
         }
         text_lower = text.lower()
         return any(keyword in text_lower for keyword in metal_keywords)

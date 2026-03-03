@@ -21,18 +21,18 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger(__name__)
 
 # Modelos disponibles como constantes para fácil referencia
-MODEL_SONNET  = "anthropic.claude-sonnet-4-5-20251001"
-MODEL_HAIKU   = "anthropic.claude-haiku-4-5-20251001"
+MODEL_SONNET = "anthropic.claude-sonnet-4-5-20251001"
+MODEL_HAIKU = "anthropic.claude-haiku-4-5-20251001"
 
 
 class BedrockClient:
     """
     Cliente wrapper para Amazon Bedrock con manejo de errores y reintentos.
-    
+
     Uso básico:
         bedrock = BedrockClient()
         response = bedrock.invoke("¿Qué bandas de metal tocan en Bogotá este año?")
-        
+
     Uso con system prompt:
         response = bedrock.invoke(
             prompt="Analiza este mensaje...",
@@ -45,9 +45,9 @@ class BedrockClient:
         region: Optional[str] = None,
         model_id: str = MODEL_SONNET,
     ):
-        self._region   = region or os.environ.get("AWS_REGION", "us-east-1")
+        self._region = region or os.environ.get("AWS_REGION", "us-east-1")
         self._model_id = model_id
-        self._client   = boto3.client("bedrock-runtime", region_name=self._region)
+        self._client = boto3.client("bedrock-runtime", region_name=self._region)
 
     # -------------------------------------------------------------------
     # Metodo principal de invocación
@@ -62,16 +62,16 @@ class BedrockClient:
     ) -> str:
         """
         Invoca el modelo de Bedrock con un mensaje simple.
-        
+
         Args:
             prompt:        El mensaje del usuario.
             system_prompt: Instrucciones del sistema (contexto del agente).
             max_tokens:    Máximo de tokens en la respuesta.
             temperature:   0.0 = determinístico, 1.0 = más creativo.
-            
+
         Returns:
             Texto de la respuesta del modelo.
-            
+
         Raises:
             BedrockInvocationError si falla después de reintentos.
         """
@@ -79,9 +79,7 @@ class BedrockClient:
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
         }
 
         if system_prompt:
@@ -107,7 +105,9 @@ class BedrockClient:
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             logger.error(f"Error de Bedrock ({error_code}): {e}")
-            raise BedrockInvocationError(f"Error invocando Bedrock: {error_code}") from e
+            raise BedrockInvocationError(
+                f"Error invocando Bedrock: {error_code}"
+            ) from e
 
         except Exception as e:
             logger.error(f"Error inesperado invocando Bedrock: {e}")
@@ -123,10 +123,10 @@ class BedrockClient:
         """
         Invoca el modelo con una conversación multi-turno.
         Útil para el Orchestrator Agent que mantiene contexto entre pasos.
-        
+
         Args:
             messages: Lista de mensajes en formato [{"role": "user/assistant", "content": "..."}]
-            
+
         Returns:
             Texto de la respuesta del modelo.
         """
@@ -161,10 +161,10 @@ class BedrockClient:
         """
         Clasifica si una banda es de metal y determina sus géneros.
         Usa el modelo Haiku (más económico) para esta tarea simple.
-        
+
         Args:
             band_name: Nombre de la banda a clasificar.
-            
+
         Returns:
             Lista de géneros de metal, vacía si no es metal.
         """
@@ -194,6 +194,8 @@ Incluye solo los géneros que apliquen."""
 # Excepciones
 # ---------------------------------------------------------------------------
 
+
 class BedrockInvocationError(Exception):
     """Error al invocar Amazon Bedrock."""
+
     pass

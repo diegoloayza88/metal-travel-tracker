@@ -59,15 +59,22 @@ SONGKICK_METRO_IDS: dict[Country, list[tuple[str, str]]] = {
 
 # Tags de géneros de metal para filtrar en Songkick
 METAL_GENRE_TAGS = [
-    "metal", "black metal", "death metal", "heavy metal", "thrash metal",
-    "war metal", "doom metal", "extreme metal", "speed metal",
+    "metal",
+    "black metal",
+    "death metal",
+    "heavy metal",
+    "thrash metal",
+    "war metal",
+    "doom metal",
+    "extreme metal",
+    "speed metal",
 ]
 
 
 class SongkickPlugin(ConcertSourcePlugin):
     """
     Plugin de Songkick para búsqueda de conciertos por ciudad/metro area.
-    
+
     Estrategia: Para cada país de interés, consulta las principales ciudades
     y filtra los resultados por géneros de metal.
     """
@@ -75,7 +82,9 @@ class SongkickPlugin(ConcertSourcePlugin):
     def __init__(self):
         self._api_key = os.environ.get("SONGKICK_API_KEY")
         if not self._api_key:
-            raise EnvironmentError("SONGKICK_API_KEY no está definida en las variables de entorno")
+            raise EnvironmentError(
+                "SONGKICK_API_KEY no está definida en las variables de entorno"
+            )
         self._base_url = "https://api.songkick.com/api/3.0"
 
     # -------------------------------------------------------------------
@@ -118,7 +127,9 @@ class SongkickPlugin(ConcertSourcePlugin):
 
                 # Buscar en paralelo todas las ciudades del país
                 tasks = [
-                    self._fetch_city_concerts(client, metro_id, city_name, country, from_date, to_date)
+                    self._fetch_city_concerts(
+                        client, metro_id, city_name, country, from_date, to_date
+                    )
                     for metro_id, city_name in metro_areas
                 ]
                 city_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -218,7 +229,7 @@ class SongkickPlugin(ConcertSourcePlugin):
                 return None
             headliner = next(
                 (p for p in performances if p.get("billing") == "headline"),
-                performances[0]
+                performances[0],
             )
             band_name = headliner.get("displayName", "").strip()
             if not band_name:
@@ -230,7 +241,11 @@ class SongkickPlugin(ConcertSourcePlugin):
 
             # Determinar tipo de evento
             event_type_str = event.get("type", "Concert").lower()
-            event_type = EventType.FESTIVAL if "festival" in event_type_str else EventType.CONCERT
+            event_type = (
+                EventType.FESTIVAL
+                if "festival" in event_type_str
+                else EventType.CONCERT
+            )
 
             # URL del evento
             event_url = event.get("uri", "")
@@ -256,7 +271,7 @@ class SongkickPlugin(ConcertSourcePlugin):
     def _filter_metal_concerts(self, concerts: list[Concert]) -> list[Concert]:
         """
         Filtra conciertos que sean de metal basándose en el nombre de la banda.
-        
+
         Nota: Songkick no retorna géneros en la API pública, así que hacemos
         un filtro por keywords en el nombre. El Concert Agent complementa esto
         con una consulta adicional a Bedrock para clasificar bandas desconocidas.
