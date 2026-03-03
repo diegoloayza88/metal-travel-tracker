@@ -21,7 +21,7 @@ from typing import Optional
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-from src.models.concert import Concert, Flight, Hotel, TravelDeal
+from src.models.concert import Concert, Flight
 
 logger = logging.getLogger(__name__)
 

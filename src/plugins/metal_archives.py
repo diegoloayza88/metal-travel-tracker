@@ -15,7 +15,7 @@ sin ánimo de lucro. Pausas de al menos 2 segundos entre requests.
 
 import asyncio
 import re
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
 import httpx

@@ -21,7 +21,6 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
 
 import boto3
 
