@@ -32,8 +32,8 @@ resource "aws_scheduler_schedule" "daily_run" {
     })
 
     retry_policy {
-      maximum_attempts             = 3
-      maximum_event_age_in_seconds = 3600 # Do not retry if the event is older than 1 hour
+      maximum_retry_attempts       = 3
+      maximum_event_age_in_seconds = 3600
     }
   }
 }
@@ -65,7 +65,7 @@ resource "aws_scheduler_schedule" "weekly_report" {
     })
 
     retry_policy {
-      maximum_attempts             = 2
+      maximum_retry_attempts       = 2
       maximum_event_age_in_seconds = 1800
     }
   }

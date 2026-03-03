@@ -7,52 +7,25 @@
 # Python code packaging
 # Each Lambda has its own zip with its dependencies
 # -----------------------------------------------------------------------------
-
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../src"
-  output_path = "${path.root}/../.build/orchestrator.zip"
-}
-
-data "archive_file" "flight_agent" {
-  type        = "zip"
-  source_dir  = "${path.root}/../src"
-  output_path = "${path.root}/../.build/flight_agent.zip"
-}
-
-data "archive_file" "hotel_agent" {
-  type        = "zip"
-  source_dir  = "${path.root}/../src"
-  output_path = "${path.root}/../.build/hotel_agent.zip"
-}
-
-data "archive_file" "reporter_agent" {
-  type        = "zip"
-  source_dir  = "${path.root}/../src"
-  output_path = "${path.root}/../.build/reporter_agent.zip"
-}
-
-data "archive_file" "whatsapp_parser" {
-  type        = "zip"
-  source_dir  = "${path.root}/../src"
-  output_path = "${path.root}/../.build/whatsapp_parser.zip"
+locals {
+  build_dir = "${path.root}/../.build"
 }
 
 # -----------------------------------------------------------------------------
 # Lambda: Orchestrator Agent
 # -----------------------------------------------------------------------------
 
-resource "aws_lambda_function" "orchestrator" {
+rresource "aws_lambda_function" "orchestrator" {
   function_name = "${local.prefix}-orchestrator"
-  description   = "Orchestrator Agent - coordinates the rest of the agents on a daily basis."
+  description   = "Orchestrator Agent - coordina todos los demás agentes diariamente"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "agents.orchestrator.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = data.archive_file.orchestrator.output_path
-  source_code_hash = data.archive_file.orchestrator.output_base64sha256
+  filename         = "${local.build_dir}/orchestrator.zip"
+  source_code_hash = fileexists("${local.build_dir}/orchestrator.zip") ? filebase64sha256("${local.build_dir}/orchestrator.zip") : "placeholder"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -62,7 +35,6 @@ resource "aws_lambda_function" "orchestrator" {
 
   layers = [aws_lambda_layer_version.python_deps.arn]
 
-  # Cloudwatch retention logs for 30 days
   depends_on = [aws_cloudwatch_log_group.orchestrator]
 
   tags = {
@@ -82,15 +54,15 @@ resource "aws_cloudwatch_log_group" "orchestrator" {
 
 resource "aws_lambda_function" "flight_agent" {
   function_name = "${local.prefix}-flight-agent"
-  description   = "Flight Agent - Looks for flights from Lima and analyses prices."
+  description   = "Flight Agent - busca vuelos desde Lima y analiza precios"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "agents.flight_agent.handler.lambda_handler"
   runtime       = "python3.13"
-  timeout       = lambda_timeout_seconds
-  memory_size   = var.lambda_memory_mb
+  timeout       = 120
+  memory_size   = 256
 
-  filename         = data.archive_file.flight_agent.output_path
-  source_code_hash = data.archive_file.flight_agent.output_base64sha256
+  filename         = "${local.build_dir}/flight_agent.zip"
+  source_code_hash = fileexists("${local.build_dir}/flight_agent.zip") ? filebase64sha256("${local.build_dir}/flight_agent.zip") : "placeholder"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -119,15 +91,15 @@ resource "aws_cloudwatch_log_group" "flight_agent" {
 
 resource "aws_lambda_function" "hotel_agent" {
   function_name = "${local.prefix}-hotel-agent"
-  description   = "Hotel Agent - Find best accommodations close to the concert venues."
+  description   = "Hotel Agent - busca alojamiento cerca del venue del concierto"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "agents.hotel_agent.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = data.archive_file.hotel_agent.output_path
-  source_code_hash = data.archive_file.hotel_agent.output_base64sha256
+  filename         = "${local.build_dir}/hotel_agent.zip"
+  source_code_hash = fileexists("${local.build_dir}/hotel_agent.zip") ? filebase64sha256("${local.build_dir}/hotel_agent.zip") : "placeholder"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -156,15 +128,15 @@ resource "aws_cloudwatch_log_group" "hotel_agent" {
 
 resource "aws_lambda_function" "reporter_agent" {
   function_name = "${local.prefix}-reporter-agent"
-  description   = "Reporter Agent - Generates reports with LLM and send notifications."
+  description   = "Reporter Agent - genera reportes con LLM y envía notificaciones"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "agents.reporter_agent.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = data.archive_file.reporter_agent.output_path
-  source_code_hash = data.archive_file.reporter_agent.output_base64sha256
+  filename         = "${local.build_dir}/reporter_agent.zip"
+  source_code_hash = fileexists("${local.build_dir}/reporter_agent.zip") ? filebase64sha256("${local.build_dir}/reporter_agent.zip") : "placeholder"
 
   environment {
     variables = local.common_env_vars
@@ -191,15 +163,15 @@ resource "aws_cloudwatch_log_group" "reporter_agent" {
 
 resource "aws_lambda_function" "whatsapp_parser" {
   function_name = "${local.prefix}-whatsapp-parser"
-  description   = "Processes WhatsApp .txt exports and extracts concerts using LLM"
+  description   = "Procesa exports .txt de WhatsApp y extrae conciertos con LLM"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "processors.whatsapp_export_parser.handler.lambda_handler"
   runtime       = "python3.13"
-  timeout       = 300 # Files can be large
-  memory_size   = 512
+  timeout       = 300
+  memory_size   = var.lambda_memory_mb
 
-  filename         = data.archive_file.whatsapp_parser.output_path
-  source_code_hash = data.archive_file.whatsapp_parser.output_base64sha256
+  filename         = "${local.build_dir}/whatsapp_parser.zip"
+  source_code_hash = fileexists("${local.build_dir}/whatsapp_parser.zip") ? filebase64sha256("${local.build_dir}/whatsapp_parser.zip") : "placeholder"
 
   environment {
     variables = local.common_env_vars
@@ -237,8 +209,8 @@ resource "aws_lambda_permission" "s3_invoke_whatsapp_parser" {
 resource "aws_lambda_layer_version" "python_deps" {
   layer_name          = "${local.prefix}-python-deps"
   description         = "Dependencias Python: httpx, etc."
-  compatible_runtimes = ["python3.13"]
+  compatible_runtimes = ["python3.12"]
 
-  filename         = "${path.root}/../.build/layer.zip"
-  source_code_hash = fileexists("${path.root}/../.build/layer.zip") ? filebase64sha256("${path.root}/../.build/layer.zip") : "placeholder"
+  filename         = "${local.build_dir}/layer.zip"
+  source_code_hash = fileexists("${local.build_dir}/layer.zip") ? filebase64sha256("${local.build_dir}/layer.zip") : "placeholder"
 }
