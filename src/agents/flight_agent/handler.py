@@ -26,7 +26,7 @@ from typing import Optional
 
 import httpx
 
-from src.models.concert import Country, DealQuality, Flight
+from src.models.concert import DealQuality, Flight
 from src.shared.dynamodb_client import DynamoDBClient
 
 logger = logging.getLogger(__name__)

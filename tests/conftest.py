@@ -5,8 +5,6 @@ Fixtures compartidos para todos los tests del proyecto.
 pytest los carga automáticamente sin necesidad de importarlos.
 """
 
-import os
-
 import boto3
 import pytest
 from moto import mock_aws

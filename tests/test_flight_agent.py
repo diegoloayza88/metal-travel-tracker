@@ -6,9 +6,7 @@ de precio histórico (la parte más crítica del sistema).
 """
 
 from datetime import date, timedelta
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from src.agents.flight_agent.handler import analyze_deal_quality
 from src.models.concert import DealQuality, Flight

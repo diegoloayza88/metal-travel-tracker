@@ -25,14 +25,13 @@ from datetime import date, timedelta
 
 import boto3
 
-from src.models.concert import Concert, Country, MetalGenre, TravelDeal
+from src.models.concert import Concert, Country, MetalGenre
 from src.plugins.bandsintown import BandsintownPlugin
 from src.plugins.eventbrite import EventbritePlugin
 from src.plugins.metal_archives import MetalArchivesPlugin
 from src.plugins.songkick import SongkickPlugin
 from src.shared.bedrock_client import BedrockClient
 from src.shared.dynamodb_client import DynamoDBClient
-from src.shared.notifications import NotificationService
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -25,8 +25,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-from src.models.concert import Country, Hotel
-from src.shared.dynamodb_client import DynamoDBClient
+from src.models.concert import Hotel
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -7,13 +7,10 @@ Verifica serialización a DynamoDB, unique_key y lógica de negocio.
 
 from datetime import date, timedelta
 
-import pytest
-
 from src.models.concert import (
     Concert,
     Country,
     DealQuality,
-    EventType,
     Flight,
     MetalGenre,
     SourceTier,
