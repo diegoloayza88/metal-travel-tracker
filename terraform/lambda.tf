@@ -1,7 +1,3 @@
-terraform {
-  required_providers {
-  }
-}
 ###############################################################################
 # terraform/lambda.tf
 # Definition of all project Lambda functions
