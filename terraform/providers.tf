@@ -1,22 +1,22 @@
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.14.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.40"
+      version = "~> 6.17.0"
     }
     archive = {
       source  = "hashicorp/archive"
-      version = "~> 2.4"
+      version = "2.7.1"
     }
   }
 
   cloud {
-    organization = "tu-organizacion-en-tfc"
+    organization = "portfolio-diego"
 
     workspaces {
-      name = "portfolio-diego"
+      name = "metal-travel-tracker"
     }
   }
 }
