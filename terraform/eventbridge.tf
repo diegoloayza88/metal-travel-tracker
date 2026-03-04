@@ -112,7 +112,7 @@ resource "aws_iam_policy" "scheduler_invoke_lambda" {
 }
 
 resource "aws_iam_role_policy_attachment" "scheduler_invoke_lambda" {
-  role       = aws_iam_role.scheduler_execution.arn
+  role       = aws_iam_role.scheduler_execution.name
   policy_arn = aws_iam_policy.scheduler_invoke_lambda.arn
 }
 
