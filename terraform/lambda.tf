@@ -20,7 +20,7 @@ resource "aws_lambda_function" "orchestrator" {
   function_name = "${local.prefix}-orchestrator"
   description   = "Orchestrator Agent - coordina todos los demás agentes diariamente"
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "agents.orchestrator.handler.lambda_handler"
+  handler       = "src.agents.orchestrator.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
@@ -56,7 +56,7 @@ resource "aws_lambda_function" "flight_agent" {
   function_name = "${local.prefix}-flight-agent"
   description   = "Flight Agent - busca vuelos desde Lima y analiza precios"
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "agents.flight_agent.handler.lambda_handler"
+  handler       = "src.agents.flight_agent.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
@@ -92,7 +92,7 @@ resource "aws_lambda_function" "hotel_agent" {
   function_name = "${local.prefix}-hotel-agent"
   description   = "Hotel Agent - busca alojamiento cerca del venue del concierto"
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "agents.hotel_agent.handler.lambda_handler"
+  handler       = "src.agents.hotel_agent.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
@@ -128,7 +128,7 @@ resource "aws_lambda_function" "reporter_agent" {
   function_name = "${local.prefix}-reporter-agent"
   description   = "Reporter Agent - genera reportes con LLM y envía notificaciones"
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "agents.reporter_agent.handler.lambda_handler"
+  handler       = "src.agents.reporter_agent.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
@@ -162,7 +162,7 @@ resource "aws_lambda_function" "whatsapp_parser" {
   function_name = "${local.prefix}-whatsapp-parser"
   description   = "Procesa exports .txt de WhatsApp y extrae conciertos con LLM"
   role          = aws_iam_role.lambda_execution.arn
-  handler       = "processors.whatsapp_export_parser.handler.lambda_handler"
+  handler       = "src.processors.whatsapp_export_parser.handler.lambda_handler"
   runtime       = "python3.13"
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb

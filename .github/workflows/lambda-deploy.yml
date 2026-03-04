@@ -146,7 +146,7 @@ jobs:
           mkdir -p .build
           pip install -r requirements.txt -t .build/layer_tmp/python/
           cd .build/layer_tmp && zip -r ../layer.zip . && cd ../..
-          cd src && zip -r ../.build/orchestrator.zip . && cd ..
+          zip -r .build/orchestrator.zip src/
           for name in flight_agent hotel_agent reporter_agent whatsapp_parser; do
             cp .build/orchestrator.zip .build/${name}.zip
           done
