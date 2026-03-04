@@ -151,6 +151,20 @@ jobs:
             cp .build/orchestrator.zip .build/${name}.zip
           done
 
+      - name: Upload packages a S3
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION:    us-east-1
+        run: |
+          BUCKET="metal-travel-tracker-prod-lambda-code"
+          aws s3 cp .build/layer.zip          s3://${BUCKET}/layer.zip
+          aws s3 cp .build/orchestrator.zip   s3://${BUCKET}/orchestrator.zip
+          aws s3 cp .build/flight_agent.zip   s3://${BUCKET}/flight_agent.zip
+          aws s3 cp .build/hotel_agent.zip    s3://${BUCKET}/hotel_agent.zip
+          aws s3 cp .build/reporter_agent.zip s3://${BUCKET}/reporter_agent.zip
+          aws s3 cp .build/whatsapp_parser.zip s3://${BUCKET}/whatsapp_parser.zip
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init

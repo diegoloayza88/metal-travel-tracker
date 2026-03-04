@@ -8,7 +8,8 @@
 # Each Lambda has its own zip with its dependencies
 # -----------------------------------------------------------------------------
 locals {
-  build_dir = "${path.root}/../.build"
+  build_dir   = "${path.root}/../.build"
+  code_bucket = aws_s3_bucket.lambda_code.bucket
 }
 
 # -----------------------------------------------------------------------------
@@ -24,8 +25,8 @@ resource "aws_lambda_function" "orchestrator" {
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = "${local.build_dir}/orchestrator.zip"
-  source_code_hash = fileexists("${local.build_dir}/orchestrator.zip") ? filebase64sha256("${local.build_dir}/orchestrator.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "orchestrator.zip"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -33,8 +34,7 @@ resource "aws_lambda_function" "orchestrator" {
     })
   }
 
-  layers = [aws_lambda_layer_version.python_deps.arn]
-
+  layers     = [aws_lambda_layer_version.python_deps.arn]
   depends_on = [aws_cloudwatch_log_group.orchestrator]
 
   tags = {
@@ -58,11 +58,11 @@ resource "aws_lambda_function" "flight_agent" {
   role          = aws_iam_role.lambda_execution.arn
   handler       = "agents.flight_agent.handler.lambda_handler"
   runtime       = "python3.13"
-  timeout       = 120
-  memory_size   = 256
+  timeout       = var.lambda_timeout_seconds
+  memory_size   = var.lambda_memory_mb
 
-  filename         = "${local.build_dir}/flight_agent.zip"
-  source_code_hash = fileexists("${local.build_dir}/flight_agent.zip") ? filebase64sha256("${local.build_dir}/flight_agent.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "flight_agent.zip"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -70,8 +70,7 @@ resource "aws_lambda_function" "flight_agent" {
     })
   }
 
-  layers = [aws_lambda_layer_version.python_deps.arn]
-
+  layers     = [aws_lambda_layer_version.python_deps.arn]
   depends_on = [aws_cloudwatch_log_group.flight_agent]
 
   tags = {
@@ -98,8 +97,8 @@ resource "aws_lambda_function" "hotel_agent" {
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = "${local.build_dir}/hotel_agent.zip"
-  source_code_hash = fileexists("${local.build_dir}/hotel_agent.zip") ? filebase64sha256("${local.build_dir}/hotel_agent.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "hotel_agent.zip"
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -107,8 +106,7 @@ resource "aws_lambda_function" "hotel_agent" {
     })
   }
 
-  layers = [aws_lambda_layer_version.python_deps.arn]
-
+  layers     = [aws_lambda_layer_version.python_deps.arn]
   depends_on = [aws_cloudwatch_log_group.hotel_agent]
 
   tags = {
@@ -135,15 +133,14 @@ resource "aws_lambda_function" "reporter_agent" {
   timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = "${local.build_dir}/reporter_agent.zip"
-  source_code_hash = fileexists("${local.build_dir}/reporter_agent.zip") ? filebase64sha256("${local.build_dir}/reporter_agent.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "reporter_agent.zip"
 
   environment {
     variables = local.common_env_vars
   }
 
-  layers = [aws_lambda_layer_version.python_deps.arn]
-
+  layers     = [aws_lambda_layer_version.python_deps.arn]
   depends_on = [aws_cloudwatch_log_group.reporter_agent]
 
   tags = {
@@ -167,18 +164,17 @@ resource "aws_lambda_function" "whatsapp_parser" {
   role          = aws_iam_role.lambda_execution.arn
   handler       = "processors.whatsapp_export_parser.handler.lambda_handler"
   runtime       = "python3.13"
-  timeout       = 300
+  timeout       = var.lambda_timeout_seconds
   memory_size   = var.lambda_memory_mb
 
-  filename         = "${local.build_dir}/whatsapp_parser.zip"
-  source_code_hash = fileexists("${local.build_dir}/whatsapp_parser.zip") ? filebase64sha256("${local.build_dir}/whatsapp_parser.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "whatsapp_parser.zip"
 
   environment {
     variables = local.common_env_vars
   }
 
-  layers = [aws_lambda_layer_version.python_deps.arn]
-
+  layers     = [aws_lambda_layer_version.python_deps.arn]
   depends_on = [aws_cloudwatch_log_group.whatsapp_parser]
 
   tags = {
@@ -209,8 +205,8 @@ resource "aws_lambda_permission" "s3_invoke_whatsapp_parser" {
 resource "aws_lambda_layer_version" "python_deps" {
   layer_name          = "${local.prefix}-python-deps"
   description         = "Dependencias Python: httpx, etc."
-  compatible_runtimes = ["python3.12"]
+  compatible_runtimes = ["python3.13"]
 
-  filename         = "${local.build_dir}/layer.zip"
-  source_code_hash = fileexists("${local.build_dir}/layer.zip") ? filebase64sha256("${local.build_dir}/layer.zip") : "placeholder"
+  s3_bucket = local.code_bucket
+  s3_key    = "layer.zip"
 }
