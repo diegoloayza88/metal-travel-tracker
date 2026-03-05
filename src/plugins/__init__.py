@@ -37,10 +37,10 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
     logger = logging.getLogger(__name__)
 
     plugin_classes = [
-        SongkickPlugin,
+        # SongkickPlugin, #No APIKey for now
         BandsintownPlugin,
         EventbritePlugin,
-        MetalArchivesPlugin,
+        # MetalArchivesPlugin, #Blocked by IPs from AWS
     ]
 
     active = []
