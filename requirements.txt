@@ -9,6 +9,9 @@ httpx[asyncio]==0.27.0
 boto3==1.34.69
 botocore==1.34.69
 
+# Webscrapping
+beautifulsoup4
+
 # Tipos y dataclasses mejorados (solo para desarrollo, no runtime)
 # No se necesita en Lambda ya que usamos Python 3.13 nativo
 
