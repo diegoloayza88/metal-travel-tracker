@@ -151,19 +151,33 @@ jobs:
             cp .build/orchestrator.zip .build/${name}.zip
           done
 
-      - name: Upload packages a S3
+      - name: Upload packages to S3 and Update Lambda Functions
         env:
-          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION:    us-east-1
+          AWS_DEFAULT_REGION: us-east-1
         run: |
-          BUCKET="metal-travel-tracker-prod-lambda-code"
-          aws s3 cp .build/layer.zip          s3://${BUCKET}/layer.zip
-          aws s3 cp .build/orchestrator.zip   s3://${BUCKET}/orchestrator.zip
-          aws s3 cp .build/flight_agent.zip   s3://${BUCKET}/flight_agent.zip
-          aws s3 cp .build/hotel_agent.zip    s3://${BUCKET}/hotel_agent.zip
-          aws s3 cp .build/reporter_agent.zip s3://${BUCKET}/reporter_agent.zip
-          aws s3 cp .build/whatsapp_parser.zip s3://${BUCKET}/whatsapp_parser.zip
+            BUCKET="metal-travel-tracker-prod-lambda-code"
+            PREFIX="metal-travel-tracker-prod"
+            
+            aws s3 cp .build/layer.zip           s3://${BUCKET}/layer.zip
+            aws s3 cp .build/orchestrator.zip    s3://${BUCKET}/orchestrator.zip
+            aws s3 cp .build/flight_agent.zip    s3://${BUCKET}/flight_agent.zip
+            aws s3 cp .build/hotel_agent.zip     s3://${BUCKET}/hotel_agent.zip
+            aws s3 cp .build/reporter_agent.zip  s3://${BUCKET}/reporter_agent.zip
+            aws s3 cp .build/whatsapp_parser.zip s3://${BUCKET}/whatsapp_parser.zip
+            
+            # Forzar actualización del código en cada Lambda
+            for fn in orchestrator flight-agent hotel-agent reporter-agent whatsapp-parser; do
+              KEY=$(echo $fn | tr '-' '_').zip
+              # orchestrator es excepción
+              [ "$fn" = "orchestrator" ] && KEY="orchestrator.zip"
+              aws lambda update-function-code \
+                --function-name ${PREFIX}-${fn} \
+                --s3-bucket ${BUCKET} \
+                --s3-key ${KEY} \
+                --no-cli-pager
+            done
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
