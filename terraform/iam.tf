@@ -43,26 +43,24 @@ resource "aws_iam_policy" "dynamodb_access" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:Query",
-        "dynamodb:Scan",
-        "dynamodb:BatchWriteItem",
-        "dynamodb:BatchGetItem",
-      ]
-      Resource = [
-        aws_dynamodb_table.concerts.arn,
-        "${aws_dynamodb_table.concerts.arn}/index/*",
-        aws_dynamodb_table.flight_prices.arn,
-        "${aws_dynamodb_table.flight_prices.arn}/index/*",
-        aws_dynamodb_table.notified_deals.arn,
-      ]
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:BatchGetItem",
+        ]
+        Resource = [
+          "arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/${local.prefix}-*"
+        ]
+      }
+    ]
   })
 }
 
