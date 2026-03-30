@@ -37,12 +37,9 @@ class DynamoDBClient:
     """
 
     def __init__(self, table_name: str):
-        env = os.environ.get("ENVIRONMENT", "dev")
-        # Si el nombre ya incluye el environment, usarlo tal cual
-        if table_name.endswith(("-dev", "-prod", "-staging")):
-            self._table_name = table_name
-        else:
-            self._table_name = f"{table_name}-{env}"
+        # Terraform already passes the full table name (e.g. metal-travel-tracker-prod-concerts)
+        # via DYNAMODB_TABLE_CONCERTS / DYNAMODB_TABLE_FLIGHTS env vars, so use it as-is.
+        self._table_name = table_name
 
         dynamodb = boto3.resource(
             "dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1")
