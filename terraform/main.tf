@@ -197,13 +197,17 @@ resource "aws_secretsmanager_secret" "api_keys" {
 resource "aws_secretsmanager_secret_version" "api_keys" {
   secret_id = aws_secretsmanager_secret.api_keys.id
   secret_string = jsonencode({
+    # Plugins activos
+    TICKETMASTER_API_KEY  = var.ticketmaster_api_key
+    SERPAPI_KEY           = var.serpapi_key
+    # Vuelos y alojamiento
+    AMADEUS_CLIENT_ID     = var.amadeus_client_id
+    AMADEUS_CLIENT_SECRET = var.amadeus_client_secret
+    BOOKING_AFFILIATE_ID  = var.booking_affiliate_id
+    # Legacy (plugins desactivados, mantenidos por compatibilidad)
     SONGKICK_API_KEY      = var.songkick_api_key
     BANDSINTOWN_APP_ID    = var.bandsintown_app_id
     EVENTBRITE_API_KEY    = var.eventbrite_api_key
-    AMADEUS_CLIENT_ID     = var.amadeus_client_id
-    AMADEUS_CLIENT_SECRET = var.amadeus_client_secret
-    SERPAPI_KEY           = var.serpapi_key
-    BOOKING_AFFILIATE_ID  = var.booking_affiliate_id
   })
 }
 
