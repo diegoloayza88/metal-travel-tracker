@@ -75,12 +75,15 @@ class DynamoDBClient:
         """
         Verifica si un concierto ya existe para evitar duplicados.
 
+        Usa scan con FilterExpression porque unique_key no es una partition key
+        y no podemos usar query sin KeyConditionExpression.
+
         Args:
             unique_key: El campo unique_key del modelo Concert.
         """
         try:
-            response = self._table.query(
-                FilterExpression=Attr("sk").contains(unique_key),
+            response = self._table.scan(
+                FilterExpression=Attr("unique_key").eq(unique_key),
                 Limit=1,
             )
             return len(response.get("Items", [])) > 0

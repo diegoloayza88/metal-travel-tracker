@@ -310,10 +310,14 @@ def classify_and_filter(
         batch_size = 15
         metal_bands_confirmed = set()
 
+        import time
         for i in range(0, len(band_names), batch_size):
             batch = band_names[i : i + batch_size]
             confirmed = classify_bands_batch(batch, bedrock)
             metal_bands_confirmed.update(confirmed)
+            # Pausa entre llamadas a Bedrock para evitar ThrottlingException
+            if i + batch_size < len(band_names):
+                time.sleep(3.0)
 
         # Agregar solo las que confirmó el LLM
         for concert in uncertain_bands:

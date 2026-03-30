@@ -102,22 +102,21 @@ class TicketmasterPlugin(ConcertSourcePlugin):
         concerts: list[Concert] = []
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Una tarea de búsqueda por país (búsqueda por clasificación metal)
-            tasks = [
-                self._fetch_country_metal(client, country, from_date, to_date)
-                for country in countries
-                if country in TM_COUNTRY_CODES
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for result in results:
-            if isinstance(result, Exception):
-                self.log_error(result, "fetch_country_metal")
-                continue
-            for concert in result:
-                if concert.event_id and concert.event_id not in seen_ids:
-                    seen_ids.add(concert.event_id)
-                    concerts.append(concert)
+            # Procesar países de forma secuencial con pausa para respetar
+            # el rate limit de Ticketmaster (200 calls/hora).
+            for country in countries:
+                if country not in TM_COUNTRY_CODES:
+                    continue
+                try:
+                    result = await self._fetch_country_metal(client, country, from_date, to_date)
+                    for concert in result:
+                        if concert.event_id and concert.event_id not in seen_ids:
+                            seen_ids.add(concert.event_id)
+                            concerts.append(concert)
+                except Exception as e:
+                    self.log_error(e, f"fetch_country_metal {country.value}")
+                # Pausa de 2s entre países para no saturar el rate limit
+                await asyncio.sleep(2.0)
 
         self.log_fetch_result(len(concerts))
         return concerts
