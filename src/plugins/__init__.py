@@ -52,8 +52,8 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
     logger = logging.getLogger(__name__)
 
     plugin_classes = [
-        TicketmasterPlugin,    # API oficial: US, MX, ES, FI, BR, CO, CL
-        SerpApiEventsPlugin,   # Google Events: todos los países (reutiliza SERPAPI_KEY)
+        TicketmasterPlugin,  # API oficial: US, MX, ES, FI, BR, CO, CL
+        SerpApiEventsPlugin,  # Google Events: todos los países (reutiliza SERPAPI_KEY)
         # BandsintownPlugin   → deprecado
         # EventbritePlugin    → endpoint descontinuado
         # SongkickPlugin      → sin API key

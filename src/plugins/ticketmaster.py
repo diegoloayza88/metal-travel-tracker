@@ -40,7 +40,7 @@ METAL_KEYWORDS_BY_COUNTRY: dict[Country, list[str]] = {
     Country.COLOMBIA: ["metal", "black metal", "death metal", "thrash"],
     Country.CHILE: ["metal", "black metal", "death metal", "thrash"],
     Country.BRAZIL: ["metal", "black metal", "death metal", "thrash"],
-    Country.UNITED_STATES: [],   # Ticketmaster US indexa bien con classificationName
+    Country.UNITED_STATES: [],  # Ticketmaster US indexa bien con classificationName
     Country.MEXICO: [],
     Country.SPAIN: ["metal"],
     Country.FINLAND: ["metal"],
@@ -108,7 +108,9 @@ class TicketmasterPlugin(ConcertSourcePlugin):
                 if country not in TM_COUNTRY_CODES:
                     continue
                 try:
-                    result = await self._fetch_country_metal(client, country, from_date, to_date)
+                    result = await self._fetch_country_metal(
+                        client, country, from_date, to_date
+                    )
                     for concert in result:
                         if concert.event_id and concert.event_id not in seen_ids:
                             seen_ids.add(concert.event_id)
@@ -190,13 +192,17 @@ class TicketmasterPlugin(ConcertSourcePlugin):
                     extra_tasks.append(
                         self._fetch_single_page(client, page_params, country)
                     )
-                extra_results = await asyncio.gather(*extra_tasks, return_exceptions=True)
+                extra_results = await asyncio.gather(
+                    *extra_tasks, return_exceptions=True
+                )
                 for r in extra_results:
                     if not isinstance(r, Exception):
                         concerts.extend(r)
 
         except httpx.HTTPStatusError as e:
-            self.log_error(e, f"país: {country.value} | status: {e.response.status_code}")
+            self.log_error(
+                e, f"país: {country.value} | status: {e.response.status_code}"
+            )
         except Exception as e:
             self.log_error(e, f"país: {country.value}")
 
