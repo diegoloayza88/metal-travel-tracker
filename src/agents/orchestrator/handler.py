@@ -128,8 +128,8 @@ def lambda_handler(event: dict, context) -> dict:
 
     flight_deals = []
     for concert_item in concerts_needing_flights[
-        :20
-    ]:  # Máximo 20 por día para no saturar APIs
+        :5
+    ]:  # Máximo 5 por ejecución (cada llamada tarda ~30s, Lambda tiene 15min)
         try:
             flight_result = lambda_client.invoke(
                 FunctionName=os.environ["FLIGHT_AGENT_FUNCTION_NAME"],
