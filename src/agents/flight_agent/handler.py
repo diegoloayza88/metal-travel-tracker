@@ -29,6 +29,7 @@ import httpx
 
 from src.models.concert import DealQuality, Flight
 from src.shared.dynamodb_client import DynamoDBClient
+from src.shared.secrets import load_secrets
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -90,7 +91,7 @@ def lambda_handler(event: dict, context) -> dict:
         event_date:      Fecha del concierto (YYYY-MM-DD)
         concert_ref:     ID de referencia del concierto (para linking)
     """
-    _load_secrets_into_env()
+    load_secrets()
     logger.info(f"Flight Agent iniciado: {json.dumps(event)}")
 
     country_code = event.get("concert_country", "")

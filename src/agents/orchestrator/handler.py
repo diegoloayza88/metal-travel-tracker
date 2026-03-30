@@ -28,10 +28,10 @@ import boto3
 from src.models.concert import Concert, Country, MetalGenre
 from src.plugins.bandsintown import BandsintownPlugin
 from src.plugins.eventbrite import EventbritePlugin
-from src.plugins.metal_archives import MetalArchivesPlugin
 from src.plugins.songkick import SongkickPlugin
 from src.shared.bedrock_client import BedrockClient
 from src.shared.dynamodb_client import DynamoDBClient
+from src.shared.secrets import load_secrets
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -67,6 +67,7 @@ def lambda_handler(event: dict, context) -> dict:
     Entry point del Orchestrator Agent.
     Invocado por Step Functions diariamente.
     """
+    load_secrets()
     logger.info("Orchestrator Agent iniciado")
     logger.info(f"Evento: {json.dumps(event)}")
 
@@ -224,10 +225,7 @@ async def collect_all_concerts(
     except Exception as e:
         logger.warning(f"EventbritePlugin no disponible: {e}")
 
-    try:
-        plugins.append(MetalArchivesPlugin())
-    except Exception as e:
-        logger.warning(f"MetalArchivesPlugin no disponible: {e}")
+    # Metal Archives removed: blocks all AWS IP ranges with 403
 
     if not plugins:
         logger.error("No hay plugins disponibles")
