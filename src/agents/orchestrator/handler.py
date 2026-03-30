@@ -211,7 +211,9 @@ async def collect_all_concerts(
     plugins: list[ConcertSourcePlugin] = get_active_plugins()
 
     if not plugins:
-        logger.error("No hay plugins disponibles. Verifica las API keys en Secrets Manager.")
+        logger.error(
+            "No hay plugins disponibles. Verifica las API keys en Secrets Manager."
+        )
         return []
 
     logger.info(f"Plugins activos: {[p.source_name for p in plugins]}")
@@ -311,6 +313,7 @@ def classify_and_filter(
         metal_bands_confirmed = set()
 
         import time
+
         for i in range(0, len(band_names), batch_size):
             batch = band_names[i : i + batch_size]
             confirmed = classify_bands_batch(batch, bedrock)
