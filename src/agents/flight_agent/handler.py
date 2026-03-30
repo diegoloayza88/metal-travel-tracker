@@ -24,6 +24,7 @@ import statistics
 from datetime import date, timedelta
 from typing import Optional
 
+import boto3
 import httpx
 
 from src.models.concert import DealQuality, Flight
@@ -53,6 +54,31 @@ FLIGHT_SEARCH_DAYS_AFTER = 2  # Regresar 2 días después
 
 # Precio máximo absoluto a considerar (en USD)
 MAX_PRICE_USD = 2500
+
+
+def _load_secrets_into_env() -> None:
+    """
+    Loads API credentials from Secrets Manager into environment variables.
+    Called once at Lambda startup so the rest of the handler can use os.environ.
+    """
+    secrets_arn = os.environ.get("SECRETS_ARN")
+    if not secrets_arn:
+        logger.warning("SECRETS_ARN no configurado, omitiendo carga de secretos")
+        return
+
+    try:
+        client = boto3.client(
+            "secretsmanager",
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+        )
+        response = client.get_secret_value(SecretId=secrets_arn)
+        secrets = json.loads(response["SecretString"])
+        for key, value in secrets.items():
+            if value:  # don't overwrite with empty strings
+                os.environ.setdefault(key, value)
+        logger.info("Secretos cargados desde Secrets Manager")
+    except Exception as e:
+        logger.error(f"Error cargando secretos: {e}")
 
 
 def lambda_handler(event: dict, context) -> dict:

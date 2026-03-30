@@ -3,6 +3,44 @@
 # Definition of all project Lambda functions
 ###############################################################################
 
+# Data sources to detect s3 changes
+data "aws_s3_object" "layer_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "layer.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+data "aws_s3_object" "orchestrator_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "orchestrator.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+data "aws_s3_object" "flight_agent_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "flight_agent.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+data "aws_s3_object" "hotel_agent_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "hotel_agent.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+data "aws_s3_object" "reporter_agent_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "reporter_agent.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+data "aws_s3_object" "whatsapp_parser_zip" {
+  bucket     = aws_s3_bucket.lambda_code.bucket
+  key        = "whatsapp_parser.zip"
+  depends_on = [aws_s3_bucket.lambda_code]
+}
+
+
 # -----------------------------------------------------------------------------
 # Python code packaging
 # Each Lambda has its own zip with its dependencies
@@ -27,6 +65,8 @@ resource "aws_lambda_function" "orchestrator" {
 
   s3_bucket = local.code_bucket
   s3_key    = "orchestrator.zip"
+
+  source_code_hash = data.aws_s3_object.orchestrator_zip.etag
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -64,6 +104,8 @@ resource "aws_lambda_function" "flight_agent" {
   s3_bucket = local.code_bucket
   s3_key    = "flight_agent.zip"
 
+  source_code_hash = data.aws_s3_object.flight_agent_zip.etag
+
   environment {
     variables = merge(local.common_env_vars, {
       SECRETS_ARN = aws_secretsmanager_secret.api_keys.arn
@@ -99,6 +141,8 @@ resource "aws_lambda_function" "hotel_agent" {
 
   s3_bucket = local.code_bucket
   s3_key    = "hotel_agent.zip"
+
+  source_code_hash = data.aws_s3_object.hotel_agent_zip.etag
 
   environment {
     variables = merge(local.common_env_vars, {
@@ -136,6 +180,8 @@ resource "aws_lambda_function" "reporter_agent" {
   s3_bucket = local.code_bucket
   s3_key    = "reporter_agent.zip"
 
+  source_code_hash = data.aws_s3_object.reporter_agent_zip.etag
+
   environment {
     variables = local.common_env_vars
   }
@@ -169,6 +215,8 @@ resource "aws_lambda_function" "whatsapp_parser" {
 
   s3_bucket = local.code_bucket
   s3_key    = "whatsapp_parser.zip"
+
+  source_code_hash = data.aws_s3_object.whatsapp_parser_zip.etag
 
   environment {
     variables = local.common_env_vars
@@ -204,9 +252,10 @@ resource "aws_lambda_permission" "s3_invoke_whatsapp_parser" {
 
 resource "aws_lambda_layer_version" "python_deps" {
   layer_name          = "${local.prefix}-python-deps"
-  description         = "Dependencias Python: httpx, etc."
+  description         = "Dependencias Python: httpx, beautifulsoup4, etc."
   compatible_runtimes = ["python3.13"]
 
-  s3_bucket = local.code_bucket
-  s3_key    = "layer.zip"
+  s3_bucket        = local.code_bucket
+  s3_key           = "layer.zip"
+  source_code_hash = data.aws_s3_object.layer_zip.etag
 }

@@ -22,14 +22,8 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger(__name__)
 
 # Modelos disponibles como constantes para fácil referencia
-# NOTE: Cross-region inference profiles (us.anthropic.*) require a valid AWS Marketplace
-# payment instrument. Until that is configured in AWS Billing → Payment Methods,
-# use the classic Claude 3 Haiku which does not go through Marketplace.
-# Once billing is fixed, restore to:
-#   MODEL_SONNET = "us.anthropic.claude-sonnet-4-6"
-#   MODEL_HAIKU  = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
-MODEL_SONNET = "anthropic.claude-3-haiku-20240307-v1:0"
-MODEL_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
+MODEL_SONNET = "us.anthropic.claude-sonnet-4-6"
+MODEL_HAIKU = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 class BedrockClient:
