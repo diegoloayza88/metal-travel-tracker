@@ -57,21 +57,29 @@ variable "discord_webhook_url" {
 
 # ---- Concert APIs -----------------------------------------------------------
 
+variable "ticketmaster_api_key" {
+  description = "Ticketmaster Discovery API Key (gratuita en developer.ticketmaster.com)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+# Variables legacy mantenidas para compatibilidad (no se usan en plugins activos)
 variable "songkick_api_key" {
-  description = "Songkick API Key"
+  description = "Songkick API Key (plugin desactivado)"
   type        = string
   sensitive   = true
   default     = ""
 }
 
 variable "bandsintown_app_id" {
-  description = "Bandsintown App ID (can be the project name)"
+  description = "Bandsintown App ID (plugin desactivado)"
   type        = string
   default     = "metal-travel-tracker"
 }
 
 variable "eventbrite_api_key" {
-  description = "Eventbrite API Key"
+  description = "Eventbrite API Key (plugin desactivado - endpoint descontinuado)"
   type        = string
   sensitive   = true
   default     = ""

@@ -26,9 +26,8 @@ from datetime import date, timedelta
 import boto3
 
 from src.models.concert import Concert, Country, MetalGenre
-from src.plugins.bandsintown import BandsintownPlugin
-from src.plugins.eventbrite import EventbritePlugin
-from src.plugins.songkick import SongkickPlugin
+from src.plugins import get_active_plugins
+from src.plugins.base import ConcertSourcePlugin
 from src.shared.bedrock_client import BedrockClient
 from src.shared.dynamodb_client import DynamoDBClient
 from src.shared.secrets import load_secrets
@@ -200,7 +199,7 @@ async def collect_all_concerts(
     genres: list[MetalGenre],
 ) -> list[Concert]:
     """
-    Ejecuta todos los plugins en paralelo para máxima eficiencia.
+    Carga los plugins activos desde el registro central y los ejecuta en paralelo.
     Maneja errores individuales sin detener el proceso completo.
     """
     import asyncio
@@ -208,43 +207,29 @@ async def collect_all_concerts(
     from_date = date.today()
     to_date = date.today() + timedelta(days=SEARCH_DAYS_AHEAD)
 
-    # Instanciar todos los plugins activos
-    plugins = []
-    try:
-        plugins.append(SongkickPlugin())
-    except Exception as e:
-        logger.warning(f"SongkickPlugin no disponible: {e}")
-
-    try:
-        plugins.append(BandsintownPlugin())
-    except Exception as e:
-        logger.warning(f"BandsintownPlugin no disponible: {e}")
-
-    try:
-        plugins.append(EventbritePlugin())
-    except Exception as e:
-        logger.warning(f"EventbritePlugin no disponible: {e}")
-
-    # Metal Archives removed: blocks all AWS IP ranges with 403
+    # Cargar plugins desde el registro (TicketmasterPlugin + SerpApiEventsPlugin)
+    plugins: list[ConcertSourcePlugin] = get_active_plugins()
 
     if not plugins:
-        logger.error("No hay plugins disponibles")
+        logger.error("No hay plugins disponibles. Verifica las API keys en Secrets Manager.")
         return []
+
+    logger.info(f"Plugins activos: {[p.source_name for p in plugins]}")
 
     # Ejecutar todos en paralelo
     tasks = [
         plugin.fetch_concerts(countries, genres, from_date, to_date)
         for plugin in plugins
-        if plugin.is_enabled
     ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     all_concerts = []
-    for i, result in enumerate(results):
+    for plugin, result in zip(plugins, results):
         if isinstance(result, Exception):
-            logger.error(f"Plugin {plugins[i].source_name} falló: {result}")
+            logger.error(f"Plugin {plugin.source_name} falló: {result}")
             continue
+        logger.info(f"Plugin {plugin.source_name}: {len(result)} conciertos")
         all_concerts.extend(result)
 
     return all_concerts
@@ -325,10 +310,14 @@ def classify_and_filter(
         batch_size = 15
         metal_bands_confirmed = set()
 
+        import time
         for i in range(0, len(band_names), batch_size):
             batch = band_names[i : i + batch_size]
             confirmed = classify_bands_batch(batch, bedrock)
             metal_bands_confirmed.update(confirmed)
+            # Pausa entre llamadas a Bedrock para evitar ThrottlingException
+            if i + batch_size < len(band_names):
+                time.sleep(3.0)
 
         # Agregar solo las que confirmó el LLM
         for concert in uncertain_bands:
