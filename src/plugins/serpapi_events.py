@@ -320,7 +320,7 @@ _MONTH_ABBR = {
     # Español
     "ene": 1, "abr": 4, "ago": 8, "dic": 12,
     # Portugués
-    "fev": 2, "abr": 4, "mai": 5, "set": 9, "out": 10, "dez": 12,
+    "fev": 2, "mai": 5, "set": 9, "out": 10, "dez": 12,
     # Finlandés (los meses en finlandés son distintos, fallback a inglés)
 }
 
