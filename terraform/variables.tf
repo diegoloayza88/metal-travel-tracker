@@ -140,5 +140,5 @@ variable "lambda_memory_mb" {
 variable "bedrock_model_id" {
   description = "Bedrock model ID to use (cross-region inference profile recommended)"
   type        = string
-  default     = "anthropic.claude-sonnet-4-6"
+  default     = "us.anthropic.claude-sonnet-4-6"
 }

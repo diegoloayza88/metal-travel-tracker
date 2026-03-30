@@ -138,8 +138,12 @@ resource "aws_iam_policy" "bedrock_access" {
         "bedrock:InvokeModelWithResponseStream",
       ]
       Resource = [
-        "arn:aws:bedrock:${var.aws_region}::foundation-model/anthropic.claude-sonnet-4-5-20251001",
-        "arn:aws:bedrock:${var.aws_region}::foundation-model/anthropic.claude-haiku-4-5-20251001",
+        # Cross-region inference profiles (required for us.anthropic.* model IDs)
+        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/us.anthropic.claude-sonnet-4-6",
+        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        # Underlying foundation models (needed for cross-region routing)
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6",
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
       ]
     }]
   })

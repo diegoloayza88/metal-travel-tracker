@@ -4,9 +4,9 @@ shared/bedrock_client.py
 Cliente centralizado para interactuar con Amazon Bedrock.
 Todos los agentes usan este cliente en lugar de instanciar boto3 directamente.
 
-Modelos disponibles en Bedrock:
-  - anthropic.claude-sonnet-4-6         → El que usamos (último modelo disponible)
-  - anthropic.claude-haiku-4-5-20251001-v1:0  → Más rápido y barato (clasificaciones simples)
+Modelos disponibles en Bedrock (cross-region inference profiles con prefijo us.):
+  - us.anthropic.claude-sonnet-4-6            → El que usamos (último modelo disponible)
+  - us.anthropic.claude-haiku-4-5-20251001-v1:0  → Más rápido y barato (clasificaciones simples)
 
 El modelo principal puede sobreescribirse vía la variable de entorno BEDROCK_MODEL_ID.
 """
@@ -22,8 +22,14 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger(__name__)
 
 # Modelos disponibles como constantes para fácil referencia
-MODEL_SONNET = "anthropic.claude-sonnet-4-6"
-MODEL_HAIKU = "anthropic.claude-haiku-4-5-20251001-v1:0"
+# NOTE: Cross-region inference profiles (us.anthropic.*) require a valid AWS Marketplace
+# payment instrument. Until that is configured in AWS Billing → Payment Methods,
+# use the classic Claude 3 Haiku which does not go through Marketplace.
+# Once billing is fixed, restore to:
+#   MODEL_SONNET = "us.anthropic.claude-sonnet-4-6"
+#   MODEL_HAIKU  = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+MODEL_SONNET = "anthropic.claude-3-haiku-20240307-v1:0"
+MODEL_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
 class BedrockClient:
