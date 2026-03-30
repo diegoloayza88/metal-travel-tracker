@@ -5,9 +5,10 @@ Cliente centralizado para interactuar con Amazon Bedrock.
 Todos los agentes usan este cliente en lugar de instanciar boto3 directamente.
 
 Modelos disponibles en Bedrock:
-  - anthropic.claude-sonnet-4-5  → El que usamos (balance precio/capacidad)
-  - anthropic.claude-opus-4-5    → Más capaz, más caro (para tareas complejas)
-  - anthropic.claude-haiku-4-5   → Más rápido y barato (para clasificaciones simples)
+  - anthropic.claude-sonnet-4-6         → El que usamos (último modelo disponible)
+  - anthropic.claude-haiku-4-5-20251001-v1:0  → Más rápido y barato (clasificaciones simples)
+
+El modelo principal puede sobreescribirse vía la variable de entorno BEDROCK_MODEL_ID.
 """
 
 import json
@@ -21,8 +22,8 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger(__name__)
 
 # Modelos disponibles como constantes para fácil referencia
-MODEL_SONNET = "anthropic.claude-sonnet-4-5-20251001"
-MODEL_HAIKU = "anthropic.claude-haiku-4-5-20251001"
+MODEL_SONNET = "anthropic.claude-sonnet-4-6"
+MODEL_HAIKU = "anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 class BedrockClient:
@@ -46,7 +47,8 @@ class BedrockClient:
         model_id: str = MODEL_SONNET,
     ):
         self._region = region or os.environ.get("AWS_REGION", "us-east-1")
-        self._model_id = model_id
+        # Allow overriding the model via env var (set by Terraform via bedrock_model_id variable)
+        self._model_id = os.environ.get("BEDROCK_MODEL_ID", model_id)
         self._client = boto3.client("bedrock-runtime", region_name=self._region)
 
     # -------------------------------------------------------------------
