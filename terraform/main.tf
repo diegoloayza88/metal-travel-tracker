@@ -209,6 +209,13 @@ resource "aws_secretsmanager_secret_version" "api_keys" {
     BANDSINTOWN_APP_ID = var.bandsintown_app_id
     EVENTBRITE_API_KEY = var.eventbrite_api_key
   })
+
+  # Evita que Terraform sobreescriba el secret en cada apply cuando las
+  # variables no están configuradas en el workspace de TFC.
+  # Las API keys se gestionan directamente via AWS CLI / consola.
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
 }
 
 # -----------------------------------------------------------------------------
