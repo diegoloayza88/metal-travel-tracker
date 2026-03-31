@@ -22,6 +22,7 @@ import json
 import logging
 import os
 from datetime import date, timedelta
+from typing import Optional
 
 import boto3
 
@@ -31,6 +32,7 @@ from src.plugins.base import ConcertSourcePlugin
 from src.shared.bedrock_client import BedrockClient
 from src.shared.dynamodb_client import DynamoDBClient
 from src.shared.secrets import load_secrets
+from src.shared.user_config import UserPreferences, load_user_preferences
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -67,8 +69,10 @@ def lambda_handler(event: dict, context) -> dict:
     Invocado por Step Functions diariamente.
     """
     load_secrets()
+    prefs = load_user_preferences()
     logger.info("Orchestrator Agent iniciado")
     logger.info(f"Evento: {json.dumps(event)}")
+    logger.info(f"Watchlist: {len(prefs.watchlist_bands)} bandas monitoreadas")
 
     bedrock = BedrockClient()
     dynamodb = DynamoDBClient(table_name=os.environ["DYNAMODB_TABLE_CONCERTS"])
@@ -101,18 +105,32 @@ def lambda_handler(event: dict, context) -> dict:
     # -------------------------------------------------------------------
     logger.info("Paso 2: Clasificando y filtrando conciertos de metal")
 
-    metal_concerts = classify_and_filter(all_concerts, bedrock)
+    metal_concerts = classify_and_filter(all_concerts, bedrock, prefs)
     logger.info(f"Conciertos de metal después del filtro: {len(metal_concerts)}")
 
-    # Guardar nuevos conciertos en DynamoDB
+    # Guardar nuevos conciertos en DynamoDB con scoring de watchlist
     new_count = 0
+    watchlist_new_count = 0
     for concert in metal_concerts:
+        w_score = prefs.watchlist_score(concert.band_name)
+        w_match = w_score > 0
         if not dynamodb.exists(concert.unique_key):
-            if dynamodb.save_concert(concert):
+            if dynamodb.save_concert(
+                concert, watchlist_score=w_score, watchlist_match=w_match
+            ):
                 new_count += 1
+                if w_match:
+                    watchlist_new_count += 1
+                    logger.info(
+                        f"WATCHLIST MATCH: {concert.band_name} en {concert.city}, "
+                        f"{concert.country.value} ({concert.event_date_str}) — score {w_score}"
+                    )
 
     results["concerts_new"] = new_count
-    logger.info(f"Conciertos nuevos guardados: {new_count}")
+    results["watchlist_new"] = watchlist_new_count
+    logger.info(
+        f"Conciertos nuevos guardados: {new_count} ({watchlist_new_count} watchlist matches)"
+    )
 
     # -------------------------------------------------------------------
     # PASO 3: Buscar vuelos para conciertos sin búsqueda previa
@@ -126,10 +144,15 @@ def lambda_handler(event: dict, context) -> dict:
         f"Conciertos que necesitan búsqueda de vuelos: {len(concerts_needing_flights)}"
     )
 
+    # Priorizar watchlist matches para la búsqueda de vuelos
+    concerts_needing_flights.sort(
+        key=lambda x: float(x.get("watchlist_score", 0)), reverse=True
+    )
+
     flight_deals = []
     for concert_item in concerts_needing_flights[
-        :20
-    ]:  # Máximo 20 por día para no saturar APIs
+        :5
+    ]:  # Máximo 5 por día para no saturar APIs ni el timeout de Lambda
         try:
             flight_result = lambda_client.invoke(
                 FunctionName=os.environ["FLIGHT_AGENT_FUNCTION_NAME"],
@@ -174,8 +197,10 @@ def lambda_handler(event: dict, context) -> dict:
                 Payload=json.dumps(
                     {
                         "new_concerts_count": new_count,
+                        "watchlist_new_count": watchlist_new_count,
                         "flight_deals": flight_deals,
                         "report_date": date.today().isoformat(),
+                        "is_weekly_report": date.today().weekday() == 6,
                     }
                 ),
             )
@@ -211,7 +236,9 @@ async def collect_all_concerts(
     plugins: list[ConcertSourcePlugin] = get_active_plugins()
 
     if not plugins:
-        logger.error("No hay plugins disponibles. Verifica las API keys en Secrets Manager.")
+        logger.error(
+            "No hay plugins disponibles. Verifica las API keys en Secrets Manager."
+        )
         return []
 
     logger.info(f"Plugins activos: {[p.source_name for p in plugins]}")
@@ -241,7 +268,9 @@ async def collect_all_concerts(
 
 
 def classify_and_filter(
-    concerts: list[Concert], bedrock: BedrockClient
+    concerts: list[Concert],
+    bedrock: BedrockClient,
+    prefs: Optional[UserPreferences] = None,
 ) -> list[Concert]:
     """
     Usa Bedrock para clasificar bandas desconocidas y filtrar las que no son metal.
@@ -294,6 +323,10 @@ def classify_and_filter(
             "behemoth",
             "mgła",
         }
+        # Agregar watchlist del usuario (siempre son metal por definición)
+        if prefs:
+            for wb in prefs.watchlist_bands:
+                known_metal_bands.add(wb.lower().strip())
         if band_lower in known_metal_bands:
             classified.append(concert)
             continue
@@ -311,6 +344,7 @@ def classify_and_filter(
         metal_bands_confirmed = set()
 
         import time
+
         for i in range(0, len(band_names), batch_size):
             batch = band_names[i : i + batch_size]
             confirmed = classify_bands_batch(batch, bedrock)

@@ -73,12 +73,40 @@ COUNTRY_SEARCH_CONFIG: dict[Country, dict] = {
 # Keywords usados para pre-filtrar resultados de Google Events
 # (muchos resultados no serán de metal)
 METAL_FILTER_KEYWORDS = {
-    "metal", "thrash", "black", "death", "grindcore", "doom", "heavy",
-    "carcass", "slayer", "sepultura", "kreator", "cannibal", "napalm",
-    "morbid", "obituary", "venom", "mayhem", "behemoth", "watain",
-    "mgła", "marduk", "dark funeral", "immortal", "satyricon",
-    "metallica", "megadeth", "anthrax", "exodus", "testament", "overkill",
-    "sodom", "destruction", "iron maiden", "judas priest",
+    "metal",
+    "thrash",
+    "black",
+    "death",
+    "grindcore",
+    "doom",
+    "heavy",
+    "carcass",
+    "slayer",
+    "sepultura",
+    "kreator",
+    "cannibal",
+    "napalm",
+    "morbid",
+    "obituary",
+    "venom",
+    "mayhem",
+    "behemoth",
+    "watain",
+    "mgła",
+    "marduk",
+    "dark funeral",
+    "immortal",
+    "satyricon",
+    "metallica",
+    "megadeth",
+    "anthrax",
+    "exodus",
+    "testament",
+    "overkill",
+    "sodom",
+    "destruction",
+    "iron maiden",
+    "judas priest",
 }
 
 
@@ -161,7 +189,10 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
                                 continue
 
                             # Filtro de fecha
-                            if concert.event_date < from_date or concert.event_date > to_date:
+                            if (
+                                concert.event_date < from_date
+                                or concert.event_date > to_date
+                            ):
                                 continue
 
                             # Deduplicar
@@ -303,7 +334,9 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
         match = re.search(r"\b(202[5-9]|203\d)-(\d{2})-(\d{2})\b", blob)
         if match:
             try:
-                return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                return date(
+                    int(match.group(1)), int(match.group(2)), int(match.group(3))
+                )
             except ValueError:
                 pass
 
@@ -315,21 +348,38 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
 # ──────────────────────────────────────────────────────────────────────────────
 
 _MONTH_ABBR = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
     # Español
-    "ene": 1, "abr": 4, "ago": 8, "dic": 12,
+    "ene": 1,
+    "abr": 4,
+    "ago": 8,
+    "dic": 12,
     # Portugués
-    "fev": 2, "abr": 4, "mai": 5, "set": 9, "out": 10, "dez": 12,
+    "fev": 2,
+    "mai": 5,
+    "set": 9,
+    "out": 10,
+    "dez": 12,
     # Finlandés (los meses en finlandés son distintos, fallback a inglés)
 }
 
 _DATE_FORMATS = [
-    "%b %d, %Y",    # Apr 15, 2026
-    "%B %d, %Y",    # April 15, 2026
-    "%d %b %Y",     # 15 Apr 2026
-    "%d/%m/%Y",     # 15/04/2026
-    "%Y-%m-%d",     # 2026-04-15
+    "%b %d, %Y",  # Apr 15, 2026
+    "%B %d, %Y",  # April 15, 2026
+    "%d %b %Y",  # 15 Apr 2026
+    "%d/%m/%Y",  # 15/04/2026
+    "%Y-%m-%d",  # 2026-04-15
     "%a, %b %d, %Y",  # Sat, Apr 15, 2026
 ]
 
@@ -339,7 +389,9 @@ def _try_parse_date(raw: str, current_year: int) -> Optional[date]:
         return None
 
     # Limpiar: quitar hora y timezone
-    cleaned = re.sub(r",?\s+\d{1,2}:\d{2}(\s*(AM|PM|UTC|GMT|[+-]\d+))?", "", raw).strip()
+    cleaned = re.sub(
+        r",?\s+\d{1,2}:\d{2}(\s*(AM|PM|UTC|GMT|[+-]\d+))?", "", raw
+    ).strip()
 
     # Intentar formatos directos
     for fmt in _DATE_FORMATS:

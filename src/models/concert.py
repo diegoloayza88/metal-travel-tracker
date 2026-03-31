@@ -38,6 +38,7 @@ class EventType(str, Enum):
 class Country(str, Enum):
     """Países de interés."""
 
+    # Países con plugins de búsqueda general (Ticketmaster, SerpAPI)
     COLOMBIA = "CO"
     CHILE = "CL"
     BRAZIL = "BR"
@@ -45,6 +46,11 @@ class Country(str, Enum):
     MEXICO = "MX"
     FINLAND = "FI"
     SPAIN = "ES"
+    # Países de festivales específicos monitoreados
+    NORWAY = "NO"
+    GERMANY = "DE"
+    GREECE = "GR"
+    PERU = "PE"
 
 
 class SourceTier(int, Enum):

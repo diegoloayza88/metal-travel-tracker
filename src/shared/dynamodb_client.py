@@ -50,7 +50,12 @@ class DynamoDBClient:
     # Operaciones de Conciertos
     # -------------------------------------------------------------------
 
-    def save_concert(self, concert: Concert) -> bool:
+    def save_concert(
+        self,
+        concert: Concert,
+        watchlist_score: float = 0.0,
+        watchlist_match: bool = False,
+    ) -> bool:
         """
         Guarda un concierto en DynamoDB.
         Si ya existe (mismo unique_key), actualiza en lugar de duplicar.
@@ -64,6 +69,8 @@ class DynamoDBClient:
             event_datetime = datetime.combine(concert.event_date, datetime.min.time())
             ttl = int((event_datetime + timedelta(days=30)).timestamp())
             item["ttl"] = {"N": str(ttl)}
+            item["watchlist_score"] = {"N": str(watchlist_score)}
+            item["watchlist_match"] = {"BOOL": watchlist_match}
 
             self._table.put_item(Item=self._deserialize_item(item))
             return True
