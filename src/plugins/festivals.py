@@ -144,8 +144,8 @@ TRACKED_FESTIVALS: list[FestivalConfig] = [
     ),
     FestivalConfig(
         name="Candelabrum Metal Fest",
-        country=Country.COLOMBIA,
-        city="Bogotá",
+        country=Country.MEXICO,
+        city="Ciudad de México",
         website="https://www.instagram.com/candelabrummetalfest",
         typical_month=9,
         duration_days=1,

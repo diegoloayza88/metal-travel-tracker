@@ -65,23 +65,34 @@ def lambda_handler(event: dict, context) -> dict:
     # Todos los países monitoreados (incluye festivales en Europa/Grecia/Noruega)
     all_country_codes = ["CO", "CL", "BR", "US", "MX", "FI", "ES", "NO", "DE", "GR"]
 
-    # Si es reporte semanal, traer todos los conciertos próximos
+    # Siempre traer conciertos próximos a 12 meses — festivales y shows aislados
     upcoming_concerts = []
-    if is_weekly:
-        for country_code in all_country_codes:
-            concerts = dynamodb.get_upcoming_concerts(
-                country=country_code,
-                days_ahead=270,
-                min_confidence=0.7,
-            )
-            upcoming_concerts.extend(concerts[:8])  # Top 8 por país
+    festival_concerts = []
+    isolated_concerts = []
+    for country_code in all_country_codes:
+        concerts = dynamodb.get_upcoming_concerts(
+            country=country_code,
+            days_ahead=365,
+            min_confidence=0.7,
+        )
+        for c in concerts:
+            if c.get("festival_name"):
+                festival_concerts.append(c)
+            else:
+                isolated_concerts.append(c)
+        upcoming_concerts.extend(
+            concerts[:10]
+        )  # Top 10 por país para el prompt general
+
+    # Ordenar aislados por fecha
+    isolated_concerts.sort(key=lambda x: x.get("event_date", ""))
 
     # Siempre traer watchlist matches para destacarlos
     watchlist_concerts = []
     for country_code in all_country_codes:
         concerts = dynamodb.get_upcoming_concerts(
             country=country_code,
-            days_ahead=270,
+            days_ahead=365,
             min_confidence=0.5,
         )
         for c in concerts:
@@ -101,6 +112,8 @@ def lambda_handler(event: dict, context) -> dict:
         new_concerts_count=new_concerts_count,
         watchlist_new_count=watchlist_new_count,
         upcoming_concerts=upcoming_concerts,
+        festival_concerts=festival_concerts,
+        isolated_concerts=isolated_concerts,
         watchlist_concerts=watchlist_concerts,
         prefs=prefs,
         report_date=report_date,
@@ -151,6 +164,8 @@ def generate_report(
     new_concerts_count: int,
     watchlist_new_count: int,
     upcoming_concerts: list[dict],
+    festival_concerts: list[dict],
+    isolated_concerts: list[dict],
     watchlist_concerts: list[dict],
     prefs,
     report_date: str,
@@ -200,28 +215,59 @@ def generate_report(
             )
         watchlist_summary = json.dumps(enriched, indent=2, ensure_ascii=False)
 
-    # Serializar conciertos próximos generales
-    concerts_summary = ""
-    if upcoming_concerts:
-        concerts_summary = json.dumps(
+    # Serializar conciertos aislados (no festival) próximos
+    isolated_summary = ""
+    if isolated_concerts:
+        isolated_summary = json.dumps(
             [
                 {
                     "banda": c.get("band_name", ""),
                     "fecha": c.get("event_date", ""),
                     "ciudad": c.get("city", ""),
                     "país": c.get("country", ""),
-                    "festival": c.get("festival_name", ""),
                     "venue": c.get("venue", ""),
-                    "fuente": c.get("source", ""),
+                    "ticket_url": c.get("ticket_url", ""),
                     "es_watchlist": bool(c.get("watchlist_match")),
+                    "watchlist_score": float(c.get("watchlist_score", 0)),
                 }
-                for c in upcoming_concerts[:25]
+                for c in isolated_concerts[:30]
             ],
             indent=2,
             ensure_ascii=False,
         )
 
-    # Presupuesto de referencia por país (para el reporte semanal)
+    # Serializar festivales por separado
+    festival_summary = ""
+    if festival_concerts:
+        # Agrupar por nombre de festival
+        fest_groups: dict[str, list] = {}
+        for c in festival_concerts:
+            fn = c.get("festival_name", "Unknown")
+            fest_groups.setdefault(fn, []).append(c)
+        festival_summary = json.dumps(
+            [
+                {
+                    "festival": fn,
+                    "fecha_aprox": bands[0].get("event_date", ""),
+                    "ciudad": bands[0].get("city", ""),
+                    "país": bands[0].get("country", ""),
+                    "bandas_confirmadas": [
+                        b.get("band_name", "")
+                        for b in bands
+                        if not b.get("band_name", "").startswith("[")
+                    ],
+                    "lineup_anunciado": any(
+                        not b.get("band_name", "").startswith("[") for b in bands
+                    ),
+                    "ticket_url": bands[0].get("ticket_url", ""),
+                }
+                for fn, bands in fest_groups.items()
+            ],
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    # Presupuesto de referencia
     budget_table = "\n".join(
         f"  {cc}: vuelo ${v[0]}-${v[1]} | hotel 3n ${h[0]*3}-${h[1]*3} | comprar vuelo: {BUY_WINDOW_FLIGHTS.get(cc, 'N/A')}"
         for cc, v in FLIGHT_ESTIMATE_USD.items()
@@ -238,23 +284,32 @@ Tu trabajo es generar reportes emocionantes, directos y útiles sobre conciertos
 y oportunidades de viaje. Escribe como un amigo metalero apasionado, no como un sistema automatizado.
 Usa emojis con moderación (solo los que añadan valor).
 El reporte debe estar en español latinoamericano.
-Máximo 900 palabras para reportes diarios, 1500 para semanales."""
+Máximo 1000 palabras para reportes diarios, 1800 para semanales."""
 
     watchlist_section = (
         f"""
-BANDAS DE TU WATCHLIST DETECTADAS ({len(watchlist_concerts)} eventos):
-{watchlist_summary if watchlist_summary else "Ninguna esta semana"}
+BANDAS DE TU WATCHLIST DETECTADAS ({len(watchlist_concerts)} eventos, próximos 12 meses):
+{watchlist_summary if watchlist_summary else "Ninguna en los próximos 12 meses"}
 """
         if watchlist_concerts or is_weekly
         else ""
     )
 
-    upcoming_section = (
+    isolated_section = (
         f"""
-OTROS CONCIERTOS EN EL RADAR:
-{concerts_summary}
+CONCIERTOS AISLADOS EN RADAR (shows individuales, no festivales):
+{isolated_summary}
 """
-        if upcoming_concerts
+        if isolated_concerts
+        else ""
+    )
+
+    festival_section = (
+        f"""
+FESTIVALES MONITOREADOS (próximos 12 meses):
+{festival_summary}
+"""
+        if festival_concerts
         else ""
     )
 
@@ -268,42 +323,42 @@ REFERENCIA DE PRESUPUESTOS DESDE LIMA (LIM):
     )
 
     prompt = f"""Genera un {report_type} de Metal Travel Tracker para el {report_date}.
+Rango de proyección: hoy hasta 12 meses adelante.
 
 DEALS DE VUELOS ENCONTRADOS:
 {deals_summary}
 
 CONCIERTOS NUEVOS DETECTADOS HOY: {new_concerts_count} total ({watchlist_new_count} de tu watchlist)
-{watchlist_section}{upcoming_section}{budget_section}
-
+{watchlist_section}{festival_section}{isolated_section}{budget_section}
 INSTRUCCIONES PARA EL REPORTE:
 1. PRIORIDAD MÁXIMA — Si hay deals EXCELLENT o GOOD de vuelos, ponlos PRIMERO con entusiasmo real.
    Incluye: precio exacto, ruta, fechas, % descuento vs promedio, y por qué actuar ya.
 
-2. WATCHLIST — Destaca SIEMPRE las bandas de la watchlist de Diego (score > 0).
-   Para cada una incluye:
-   - Nombre de la banda, fecha, ciudad y país
-   - Si es parte de un festival, menciona el festival
-   - Presupuesto estimado de viaje desde Lima (vuelo + hotel 3 noches)
-   - Cuándo comprar el vuelo para esa fecha (usar "mejor_momento_comprar_vuelo")
-   - Link de tickets si está disponible
+2. WATCHLIST — Destaca SIEMPRE las bandas de la watchlist (score > 0), separando:
+   - Shows aislados: banda, fecha, ciudad, venue, presupuesto LIM→destino, cuándo comprar vuelo
+   - Apariciones en festivales: festival, fecha, ciudad, costo estimado del festival+viaje
 
-3. FESTIVALES — Para los festivales monitoreados (Steelfest, Keep It True, Inferno, etc.),
-   indica si el lineup ya está anunciado o si está por confirmar, y el costo estimado del viaje.
+3. FESTIVALES — Para cada festival monitoreado indica:
+   - Bandas confirmadas (si las hay) o "lineup pendiente"
+   - Fechas y ciudad
+   - Costo estimado de viaje desde Lima (vuelo + hotel + entrada)
+   - Cuándo es buen momento para comprar vuelo y entradas
 
-4. RADAR GENERAL — Si hay conciertos interesantes fuera de watchlist, mencionarlos brevemente.
+4. CONCIERTOS AISLADOS DESTACABLES — Menciona los shows individuales más relevantes
+   (watchlist matches primero, luego otros interesantes por país/fecha).
+   Para cada uno: banda, fecha, ciudad, venue si disponible.
 
-5. ACCIÓN CONCRETA — Termina SIEMPRE con 1-3 acciones específicas que Diego puede tomar HOY
-   (comprar tickets, reservar vuelo, activar alertas de precio, etc.).
+5. ACCIÓN CONCRETA — Termina SIEMPRE con 1-3 acciones específicas que Diego puede tomar HOY.
 
 6. NUNCA inventes precios ni fechas. Usa solo los datos proporcionados arriba.
 7. Precios siempre en USD. Links de reserva cuando estén disponibles.
 
-Estructura del reporte:
-- Encabezado con fecha y tipo de reporte
-- Sección de deals de vuelos (si los hay)
-- Sección de watchlist matches (si los hay)
-- Sección de festivales del año
-- Radar general (brevemente)
+Estructura:
+- Encabezado con fecha
+- Deals de vuelos (si los hay)
+- Watchlist matches (shows aislados + apariciones en festivales)
+- Festivales del año
+- Otros conciertos aislados del radar
 - Acciones para hoy"""
 
     try:
