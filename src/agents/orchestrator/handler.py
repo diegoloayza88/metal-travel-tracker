@@ -317,6 +317,13 @@ def classify_and_filter(
     uncertain_bands = []
 
     for concert in concerts:
+        # SerpAPI: el título del evento no es el nombre de la banda, por lo que el LLM
+        # no puede clasificarlo correctamente ("Concierto Metal Bogotá" no es una banda).
+        # Confiamos en que la query de búsqueda ya filtró por metal — incluir directamente.
+        if concert.source == "serpapi_events":
+            classified.append(concert)
+            continue
+
         # Si el nombre de la banda o el venue tiene keywords de metal, es obvio
         band_lower = concert.band_name.lower()
         obvious_metal_keywords = [
