@@ -55,6 +55,7 @@ def lambda_handler(event: dict, context) -> dict:
     new_concerts_count = event.get("new_concerts_count", 0)
     watchlist_new_count = event.get("watchlist_new_count", 0)
     flight_deals = event.get("flight_deals", [])
+    hotel_deals = event.get("hotel_deals", [])
     report_date = event.get("report_date", date.today().isoformat())
     is_weekly = event.get("is_weekly_report", False)
 
@@ -63,7 +64,19 @@ def lambda_handler(event: dict, context) -> dict:
     # -------------------------------------------------------------------
 
     # Todos los países monitoreados (incluye festivales en Europa/Grecia/Noruega)
-    all_country_codes = ["CO", "CL", "BR", "US", "MX", "FI", "ES", "NO", "DE", "GR"]
+    all_country_codes = [
+        "CO",
+        "CL",
+        "BR",
+        "US",
+        "MX",
+        "FI",
+        "ES",
+        "NO",
+        "DE",
+        "GR",
+        "RO",
+    ]
 
     # Siempre traer conciertos próximos a 12 meses — festivales y shows aislados
     upcoming_concerts = []
@@ -109,6 +122,7 @@ def lambda_handler(event: dict, context) -> dict:
     report_text = generate_report(
         bedrock=bedrock,
         flight_deals=flight_deals,
+        hotel_deals=hotel_deals,
         new_concerts_count=new_concerts_count,
         watchlist_new_count=watchlist_new_count,
         upcoming_concerts=upcoming_concerts,
@@ -161,6 +175,7 @@ def lambda_handler(event: dict, context) -> dict:
 def generate_report(
     bedrock: BedrockClient,
     flight_deals: list[dict],
+    hotel_deals: list[dict],
     new_concerts_count: int,
     watchlist_new_count: int,
     upcoming_concerts: list[dict],
@@ -185,6 +200,13 @@ def generate_report(
     deals_summary = (
         json.dumps(flight_deals, indent=2, ensure_ascii=False)
         if flight_deals
+        else "Ninguno"
+    )
+
+    # Serializar deals de hoteles (vinculados al concierto del deal de vuelo)
+    hotels_summary = (
+        json.dumps(hotel_deals, indent=2, ensure_ascii=False)
+        if hotel_deals
         else "Ninguno"
     )
 
@@ -328,11 +350,16 @@ Rango de proyección: hoy hasta 12 meses adelante.
 DEALS DE VUELOS ENCONTRADOS:
 {deals_summary}
 
+HOTELES SUGERIDOS (para los conciertos con deal de vuelo):
+{hotels_summary}
+
 CONCIERTOS NUEVOS DETECTADOS HOY: {new_concerts_count} total ({watchlist_new_count} de tu watchlist)
 {watchlist_section}{festival_section}{isolated_section}{budget_section}
 INSTRUCCIONES PARA EL REPORTE:
 1. PRIORIDAD MÁXIMA — Si hay deals EXCELLENT o GOOD de vuelos, ponlos PRIMERO con entusiasmo real.
    Incluye: precio exacto, ruta, fechas, % descuento vs promedio, y por qué actuar ya.
+   Si hay hotel sugerido para ese concierto, inclúyelo junto al deal de vuelo
+   (nombre, precio/noche, noches, total, link de reserva si disponible).
 
 2. WATCHLIST — Destaca SIEMPRE las bandas de la watchlist (score > 0), separando:
    - Shows aislados: banda, fecha, ciudad, venue, presupuesto LIM→destino, cuándo comprar vuelo
@@ -355,7 +382,7 @@ INSTRUCCIONES PARA EL REPORTE:
 
 Estructura:
 - Encabezado con fecha
-- Deals de vuelos (si los hay)
+- Deals de vuelo + hotel combinados (si los hay)
 - Watchlist matches (shows aislados + apariciones en festivales)
 - Festivales del año
 - Otros conciertos aislados del radar

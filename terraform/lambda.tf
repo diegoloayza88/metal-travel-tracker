@@ -183,7 +183,9 @@ resource "aws_lambda_function" "reporter_agent" {
   source_code_hash = data.aws_s3_object.reporter_agent_zip.etag
 
   environment {
-    variables = local.common_env_vars
+    variables = merge(local.common_env_vars, {
+      SECRETS_ARN = aws_secretsmanager_secret.api_keys.arn
+    })
   }
 
   layers     = [aws_lambda_layer_version.python_deps.arn]

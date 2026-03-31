@@ -46,6 +46,10 @@ TARGET_COUNTRIES = [
     Country.MEXICO,
     Country.FINLAND,
     Country.SPAIN,
+    Country.NORWAY,
+    Country.GERMANY,
+    Country.GREECE,
+    Country.ROMANIA,
 ]
 
 TARGET_GENRES = [
@@ -150,6 +154,7 @@ def lambda_handler(event: dict, context) -> dict:
     )
 
     flight_deals = []
+    hotel_deals = []
     for concert_item in concerts_needing_flights[
         :5
     ]:  # Máximo 5 por ejecución (cada llamada tarda ~30s, Lambda tiene 15min)
@@ -170,12 +175,40 @@ def lambda_handler(event: dict, context) -> dict:
                 flight_deals.append(flight_data["best_deal"])
                 results["flights_searched"] += 1
 
+                # Buscar hotel para los conciertos con deal de vuelo confirmado
+                city = concert_item.get("city", "")
+                if city:
+                    try:
+                        hotel_result = lambda_client.invoke(
+                            FunctionName=os.environ["HOTEL_AGENT_FUNCTION_NAME"],
+                            InvocationType="RequestResponse",
+                            Payload=json.dumps(
+                                {
+                                    "city": city,
+                                    "country": concert_item.get("country"),
+                                    "event_date": concert_item.get("event_date"),
+                                    "concert_ref": concert_item.get("sk"),
+                                }
+                            ),
+                        )
+                        hotel_data = json.loads(hotel_result["Payload"].read())
+                        if hotel_data.get("best_hotel"):
+                            hotel_deals.append(hotel_data["best_hotel"])
+                            logger.info(
+                                f"Hotel encontrado en {city}: "
+                                f"{hotel_data['best_hotel'].get('name')} "
+                                f"— ${hotel_data['best_hotel'].get('price_per_night_usd')}/noche"
+                            )
+                    except Exception as e:
+                        logger.error(f"Error invocando Hotel Agent para {city}: {e}")
+
             dynamodb.mark_flight_searched(concert_item.get("sk", ""))
 
         except Exception as e:
             logger.error(f"Error invocando Flight Agent: {e}")
 
     results["deals_found"] = len(flight_deals)
+    results["hotels_found"] = len(hotel_deals)
 
     # -------------------------------------------------------------------
     # PASO 4: Decidir si notificar hoy
@@ -199,6 +232,7 @@ def lambda_handler(event: dict, context) -> dict:
                         "new_concerts_count": new_count,
                         "watchlist_new_count": watchlist_new_count,
                         "flight_deals": flight_deals,
+                        "hotel_deals": hotel_deals,
                         "report_date": date.today().isoformat(),
                         "is_weekly_report": date.today().weekday() == 6,
                     }
