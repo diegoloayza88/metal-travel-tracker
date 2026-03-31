@@ -19,6 +19,7 @@ Para agregar un nuevo plugin:
 """
 
 from src.plugins.base import ConcertSourcePlugin
+from src.plugins.festivals import FestivalsPlugin
 from src.plugins.serpapi_events import SerpApiEventsPlugin
 from src.plugins.ticketmaster import TicketmasterPlugin
 
@@ -32,6 +33,7 @@ __all__ = [
     "ConcertSourcePlugin",
     "TicketmasterPlugin",
     "SerpApiEventsPlugin",
+    "FestivalsPlugin",
     # legacy
     "BandsintownPlugin",
     "EventbritePlugin",
@@ -54,6 +56,7 @@ def get_active_plugins() -> list[ConcertSourcePlugin]:
     plugin_classes = [
         TicketmasterPlugin,  # API oficial: US, MX, ES, FI, BR, CO, CL
         SerpApiEventsPlugin,  # Google Events: todos los países (reutiliza SERPAPI_KEY)
+        FestivalsPlugin,  # 9 festivales de referencia con lineup directo
         # BandsintownPlugin   → deprecado
         # EventbritePlugin    → endpoint descontinuado
         # SongkickPlugin      → sin API key
