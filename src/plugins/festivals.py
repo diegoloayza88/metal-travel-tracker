@@ -249,8 +249,20 @@ class FestivalsPlugin(ConcertSourcePlugin):
         # Fetchear el sitio del festival
         html_text = await self._fetch_website(client, festival)
         if not html_text:
-            logger.warning(f"[festivals] {festival.name}: no se pudo acceder al sitio")
-            # Crear entrada de festival sin lineup confirmado (para el reporte)
+            # Facebook/Instagram bloquean AWS — esperado, no es un error
+            social = (
+                "facebook.com" in festival.website
+                or "instagram.com" in festival.website
+            )
+            if social:
+                logger.info(
+                    f"[festivals] {festival.name}: sitio social ({festival.website}) "
+                    "no accesible desde AWS — usando placeholder"
+                )
+            else:
+                logger.warning(
+                    f"[festivals] {festival.name}: no se pudo acceder al sitio"
+                )
             return self._build_concerts(festival, [])
 
         # Extraer bandas con LLM
@@ -323,8 +335,19 @@ Si no hay bandas confirmadas o el lineup no está anunciado, responde:
 {{"confirmed_bands": []}}"""
 
             response = bedrock.invoke(prompt, max_tokens=600, temperature=0.0)
-            clean = re.sub(r"```(?:json)?", "", response).strip().rstrip("`")
-            data = json.loads(clean)
+            if not response or not response.strip():
+                logger.warning(
+                    f"[festivals] {festival.name}: Bedrock devolvió respuesta vacía"
+                )
+                return []
+            # Extraer solo el objeto JSON aunque haya texto antes o después
+            match = re.search(r"\{.*?\}", response, re.DOTALL)
+            if not match:
+                logger.warning(
+                    f"[festivals] {festival.name}: no se encontró JSON en respuesta"
+                )
+                return []
+            data = json.loads(match.group())
             bands = data.get("confirmed_bands", [])
             return [b.strip() for b in bands if isinstance(b, str) and len(b) >= 2]
 
