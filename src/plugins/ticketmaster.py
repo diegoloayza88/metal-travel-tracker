@@ -31,6 +31,10 @@ TM_COUNTRY_CODES: dict[Country, str] = {
     Country.BRAZIL: "BR",
     Country.COLOMBIA: "CO",
     Country.CHILE: "CL",
+    Country.NORWAY: "NO",
+    Country.GERMANY: "DE",
+    Country.GREECE: "GR",
+    Country.ROMANIA: "RO",
 }
 
 # Ticketmaster usa clasificaciones jerárquicas.
@@ -44,6 +48,10 @@ METAL_KEYWORDS_BY_COUNTRY: dict[Country, list[str]] = {
     Country.MEXICO: [],
     Country.SPAIN: ["metal"],
     Country.FINLAND: ["metal"],
+    Country.NORWAY: ["metal", "black metal"],
+    Country.GERMANY: ["metal", "black metal", "death metal"],
+    Country.GREECE: ["metal", "black metal"],
+    Country.ROMANIA: ["metal", "black metal", "death metal"],
 }
 
 

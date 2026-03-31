@@ -68,6 +68,26 @@ COUNTRY_SEARCH_CONFIG: dict[Country, dict] = {
         "hl": "es",
         "queries": ["concierto metal España", "black death metal España"],
     },
+    Country.NORWAY: {
+        "gl": "no",
+        "hl": "no",
+        "queries": ["metal concert Norway", "black metal Oslo"],
+    },
+    Country.GERMANY: {
+        "gl": "de",
+        "hl": "de",
+        "queries": ["metal konzert Deutschland", "black death metal Germany"],
+    },
+    Country.GREECE: {
+        "gl": "gr",
+        "hl": "el",
+        "queries": ["metal concert Greece Athens", "black metal Greece"],
+    },
+    Country.ROMANIA: {
+        "gl": "ro",
+        "hl": "ro",
+        "queries": ["metal concert Romania Bucharest", "black metal Romania"],
+    },
 }
 
 # Keywords usados para pre-filtrar resultados de Google Events

@@ -50,6 +50,7 @@ class Country(str, Enum):
     NORWAY = "NO"
     GERMANY = "DE"
     GREECE = "GR"
+    ROMANIA = "RO"
     PERU = "PE"
 
 

@@ -81,6 +81,7 @@ FLIGHT_ESTIMATE_USD: dict[str, tuple[int, int]] = {
     "FI": (950, 1550),  # LIM → HEL
     "NO": (950, 1600),  # LIM → OSL
     "GR": (1050, 1700),  # LIM → ATH
+    "RO": (900, 1450),  # LIM → OTP (Bucarest)
 }
 
 # Estimación de hotel por noche (USD)
@@ -96,6 +97,7 @@ HOTEL_ESTIMATE_USD: dict[str, tuple[int, int]] = {
     "FI": (90, 160),
     "NO": (100, 175),
     "GR": (65, 120),
+    "RO": (50, 95),  # Bucarest
 }
 
 # Mejor momento para comprar según tipo (semanas antes del evento)
@@ -111,6 +113,7 @@ BUY_WINDOW_FLIGHTS: dict[str, str] = {
     "FI": "12-18 semanas antes",
     "NO": "12-18 semanas antes",
     "GR": "12-18 semanas antes",
+    "RO": "10-16 semanas antes",
 }
 
 

@@ -59,6 +59,21 @@ CITY_COORDINATES: dict[str, tuple[float, float]] = {
     # España
     "Madrid": (40.4168, -3.7038),
     "Barcelona": (41.3851, 2.1734),
+    # Noruega
+    "Oslo": (59.9139, 10.7522),
+    "Bergen": (60.3913, 5.3221),
+    # Alemania
+    "Berlin": (52.5200, 13.4050),
+    "Frankfurt": (50.1109, 8.6821),
+    "Munich": (48.1351, 11.5820),
+    "Hamburg": (53.5753, 10.0153),
+    # Grecia
+    "Athens": (37.9838, 23.7275),
+    "Atenas": (37.9838, 23.7275),
+    # Rumanía
+    "Bucharest": (44.4268, 26.1025),
+    "Bucarest": (44.4268, 26.1025),
+    "Cluj-Napoca": (46.7712, 23.6236),
 }
 
 # Radio de búsqueda en km alrededor del centro de la ciudad
@@ -224,6 +239,10 @@ def _parse_booking_result(
             "MX": CountryEnum.MEXICO,
             "FI": CountryEnum.FINLAND,
             "ES": CountryEnum.SPAIN,
+            "NO": CountryEnum.NORWAY,
+            "DE": CountryEnum.GERMANY,
+            "GR": CountryEnum.GREECE,
+            "RO": CountryEnum.ROMANIA,
         }
         country = country_map.get(country_code, CountryEnum.COLOMBIA)
 
@@ -273,6 +292,10 @@ def generate_booking_links(
         "MX": CountryEnum.MEXICO,
         "FI": CountryEnum.FINLAND,
         "ES": CountryEnum.SPAIN,
+        "NO": CountryEnum.NORWAY,
+        "DE": CountryEnum.GERMANY,
+        "GR": CountryEnum.GREECE,
+        "RO": CountryEnum.ROMANIA,
     }
     country = country_map.get(country_code, CountryEnum.COLOMBIA)
 
