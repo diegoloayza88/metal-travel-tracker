@@ -129,7 +129,7 @@ variable "daily_run_cron" {
 variable "lambda_timeout_seconds" {
   description = "Timeout for main Lambdas in seconds"
   type        = number
-  default     = 300 # 5 minutes
+  default     = 900 # 15 minutes (orchestrator needs time for 11 countries + LLM + hotel calls)
 
   validation {
     condition     = var.lambda_timeout_seconds <= 900
@@ -140,7 +140,7 @@ variable "lambda_timeout_seconds" {
 variable "lambda_memory_mb" {
   description = "Memory for Lambdas in MB"
   type        = number
-  default     = 512
+  default     = 1024
 }
 
 # ---- Bedrock -----------------------------------------------------------------
