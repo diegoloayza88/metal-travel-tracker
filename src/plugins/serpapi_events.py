@@ -27,6 +27,7 @@ from src.models.concert import Concert, Country, EventType, MetalGenre, SourceTi
 from src.plugins.base import ConcertSourcePlugin
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Configuración de búsqueda por país
