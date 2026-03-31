@@ -433,7 +433,10 @@ Si no estás seguro de alguna, NO la incluyas."""
         return set(data.get("metal_bands", []))
     except Exception as e:
         logger.warning(f"Error en classify_bands_batch: {e}")
-        return set()
+        # Fail-open: si Bedrock falla (throttling, etc.) incluimos todas las bandas
+        # del batch en lugar de descartarlas. Es mejor tener falsos positivos que
+        # perder conciertos válidos por error transitorio.
+        return set(band_names)
 
 
 # ---------------------------------------------------------------------------

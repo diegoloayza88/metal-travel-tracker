@@ -15,6 +15,7 @@ Variable de entorno requerida:
 """
 
 import asyncio
+import logging
 import os
 import re
 from datetime import date, datetime
@@ -24,6 +25,8 @@ import httpx
 
 from src.models.concert import Concert, Country, EventType, MetalGenre, SourceTier
 from src.plugins.base import ConcertSourcePlugin
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Configuración de búsqueda por país
@@ -248,6 +251,9 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
                             query=query,
                             gl=config["gl"],
                             hl=config["hl"],
+                        )
+                        logger.info(
+                            f"[serpapi] {country.value} | query='{query}' → {len(raw_events)} eventos crudos"
                         )
 
                         for event in raw_events:
