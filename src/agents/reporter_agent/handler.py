@@ -371,20 +371,26 @@ INSTRUCCIONES PARA EL REPORTE:
    - Costo estimado de viaje desde Lima (vuelo + hotel + entrada)
    - Cuándo es buen momento para comprar vuelo y entradas
 
-4. CONCIERTOS AISLADOS DESTACABLES — Menciona los shows individuales más relevantes
+4. CONCIERTOS LATAM (CO/CL/MX/BR) — Dedica una subsección a shows en Colombia, Chile,
+   México y Brasil. Son los países más baratos y cercanos desde Lima ($200-$500 vuelo).
+   Aunque no estén en la watchlist, si hay conciertos de metal interesantes menciónalos:
+   banda, fecha, ciudad. No los ignores por no ser watchlist matches.
+
+5. CONCIERTOS AISLADOS DESTACABLES — Otros shows individuales relevantes
    (watchlist matches primero, luego otros interesantes por país/fecha).
    Para cada uno: banda, fecha, ciudad, venue si disponible.
 
-5. ACCIÓN CONCRETA — Termina SIEMPRE con 1-3 acciones específicas que Diego puede tomar HOY.
+6. ACCIÓN CONCRETA — Termina SIEMPRE con 1-3 acciones específicas que Diego puede tomar HOY.
 
-6. NUNCA inventes precios ni fechas. Usa solo los datos proporcionados arriba.
-7. Precios siempre en USD. Links de reserva cuando estén disponibles.
+7. NUNCA inventes precios ni fechas. Usa solo los datos proporcionados arriba.
+8. Precios siempre en USD. Links de reserva cuando estén disponibles.
 
 Estructura:
 - Encabezado con fecha
 - Deals de vuelo + hotel combinados (si los hay)
 - Watchlist matches (shows aislados + apariciones en festivales)
 - Festivales del año
+- Conciertos LatAm cercanos (CO/CL/MX/BR — baratos desde Lima)
 - Otros conciertos aislados del radar
 - Acciones para hoy"""
 
