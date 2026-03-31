@@ -36,17 +36,38 @@ COUNTRY_SEARCH_CONFIG: dict[Country, dict] = {
     Country.COLOMBIA: {
         "gl": "co",
         "hl": "es",
-        "queries": ["concierto black metal Colombia", "death metal Colombia"],
+        # skip_filter=True: las queries ya filtran por metal; el pre-filtro de keywords
+        # descartaría bandas locales (Masacre, Darkness, Inquisition, etc.) cuyo nombre
+        # no contiene géneros en inglés.
+        "skip_filter": True,
+        "queries": [
+            "concierto metal Bogotá",
+            "concierto metal Medellín",
+            "concierto black death metal Colombia",
+            "metal show Cali Colombia",
+        ],
     },
     Country.CHILE: {
         "gl": "cl",
         "hl": "es",
-        "queries": ["concierto metal Chile", "black metal Chile"],
+        "skip_filter": True,
+        "queries": [
+            "concierto metal Santiago",
+            "black metal Chile",
+            "concierto death metal Valparaíso",
+            "metal show Chile 2026",
+        ],
     },
     Country.BRAZIL: {
         "gl": "br",
         "hl": "pt",
-        "queries": ["show metal Brasil", "black metal show Brasil"],
+        "skip_filter": True,
+        "queries": [
+            "show metal São Paulo",
+            "black metal show Brasil",
+            "death metal show Rio de Janeiro",
+            "show metal Belo Horizonte",
+        ],
     },
     Country.UNITED_STATES: {
         "gl": "us",
@@ -56,7 +77,13 @@ COUNTRY_SEARCH_CONFIG: dict[Country, dict] = {
     Country.MEXICO: {
         "gl": "mx",
         "hl": "es",
-        "queries": ["concierto metal Mexico", "black metal Mexico"],
+        "skip_filter": True,
+        "queries": [
+            "concierto metal Ciudad de México",
+            "black metal Mexico CDMX",
+            "concierto metal Guadalajara",
+            "concierto metal Monterrey",
+        ],
     },
     Country.FINLAND: {
         "gl": "fi",
@@ -127,6 +154,25 @@ METAL_FILTER_KEYWORDS = {
     "destruction",
     "iron maiden",
     "judas priest",
+    # Bandas latinoamericanas conocidas
+    "masacre",
+    "inquisition",
+    "darkness",
+    "kraken",
+    "rata blanca",
+    "transmetal",
+    "brujeria",
+    "dorso",
+    "tren loco",
+    "massacre",
+    "horcas",
+    "hermética",
+    "v8",
+    "almafuerte",
+    "sarcófago",
+    "sepulchral",
+    "holocausto",
+    "reencarnación",
 }
 
 
@@ -194,6 +240,7 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
                 if not config:
                     continue
 
+                skip_filter = config.get("skip_filter", False)
                 for query in config["queries"]:
                     try:
                         raw_events = await self._search_events(
@@ -204,7 +251,9 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
                         )
 
                         for event in raw_events:
-                            concert = self._parse_event(event, country)
+                            concert = self._parse_event(
+                                event, country, skip_filter=skip_filter
+                            )
                             if not concert:
                                 continue
 
@@ -267,15 +316,22 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
     # Parsing
     # ------------------------------------------------------------------
 
-    def _parse_event(self, event: dict, country: Country) -> Optional[Concert]:
+    def _parse_event(
+        self, event: dict, country: Country, skip_filter: bool = False
+    ) -> Optional[Concert]:
         """Convierte un resultado de Google Events a nuestro modelo Concert."""
         try:
             title = event.get("title", "").strip()
             if not title:
                 return None
 
-            # Pre-filtro: descartar eventos claramente no relacionados con metal
-            if not self._looks_like_metal(title, event.get("description", "")):
+            # Pre-filtro: descartar eventos claramente no relacionados con metal.
+            # Para países donde las queries ya contienen contexto de metal (CO, CL, MX, BR)
+            # se omite el filtro para no descartar bandas locales cuyo nombre no
+            # contiene géneros en inglés (Masacre, Kraken, Inquisition, etc.).
+            if not skip_filter and not self._looks_like_metal(
+                title, event.get("description", "")
+            ):
                 return None
 
             # Fecha
