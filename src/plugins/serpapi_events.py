@@ -443,17 +443,41 @@ _MONTH_ABBR = {
     "oct": 10,
     "nov": 11,
     "dec": 12,
-    # Español
+    # Español — abreviaciones
     "ene": 1,
     "abr": 4,
     "ago": 8,
     "dic": 12,
+    # Español — nombres completos
+    "enero": 1,
+    "febrero": 2,
+    "marzo": 3,
+    "abril": 4,
+    "mayo": 5,
+    "junio": 6,
+    "julio": 7,
+    "agosto": 8,
+    "septiembre": 9,
+    "octubre": 10,
+    "noviembre": 11,
+    "diciembre": 12,
     # Portugués
     "fev": 2,
     "mai": 5,
     "set": 9,
     "out": 10,
     "dez": 12,
+    "janeiro": 1,
+    "fevereiro": 2,
+    "março": 3,
+    # "abril": 4,  # igual al español
+    "junho": 6,
+    "julho": 7,
+    # "agosto": 8,  # igual al español
+    "setembro": 9,
+    "outubro": 10,
+    "novembro": 11,
+    "dezembro": 12,
     # Finlandés (los meses en finlandés son distintos, fallback a inglés)
 }
 
@@ -471,9 +495,21 @@ def _try_parse_date(raw: str, current_year: int) -> Optional[date]:
     if not raw:
         return None
 
-    # Limpiar: quitar hora y timezone
+    # Quitar hora, timezone y "p. m."/"a. m." (español)
     cleaned = re.sub(
-        r",?\s+\d{1,2}:\d{2}(\s*(AM|PM|UTC|GMT|[+-]\d+))?", "", raw
+        r",?\s+\d{1,2}:\d{2}(\s*(AM|PM|a\.\s*m\.|p\.\s*m\.|UTC|GMT|[+-]\d+))?",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    ).strip()
+    # Quitar puntos de abreviaciones: "abr." → "abr", "sáb." → "sáb"
+    cleaned = re.sub(r"(\w)\.", r"\1", cleaned).strip()
+    # Quitar nombres de día al inicio: "sáb, 18 abr" → "18 abr"
+    cleaned = re.sub(
+        r"^(lun|mar|mié|jue|vie|sáb|dom|mon|tue|wed|thu|fri|sat|sun)[a-záéíóú]*[,\s]+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
     ).strip()
 
     # Intentar formatos directos
@@ -483,8 +519,34 @@ def _try_parse_date(raw: str, current_year: int) -> Optional[date]:
         except ValueError:
             continue
 
-    # "Apr 15" sin año → asumir próximo año si ya pasó
-    match = re.match(r"([A-Za-z]{3})\s+(\d{1,2})$", cleaned)
+    # Formato español: "18 de abril de 2026" o "18 de abr de 2026"
+    match = re.match(
+        r"(\d{1,2})\s+de\s+([a-záéíóú]+)\s+de\s+(\d{4})", cleaned, re.IGNORECASE
+    )
+    if match:
+        day = int(match.group(1))
+        month = _MONTH_ABBR.get(match.group(2).lower())
+        year = int(match.group(3))
+        if month:
+            try:
+                return date(year, month, day)
+            except ValueError:
+                pass
+
+    # "18 abr 2026" o "18 abril 2026" (sin "de")
+    match = re.match(r"(\d{1,2})\s+([a-záéíóú]+)\s+(\d{4})", cleaned, re.IGNORECASE)
+    if match:
+        day = int(match.group(1))
+        month = _MONTH_ABBR.get(match.group(2).lower())
+        year = int(match.group(3))
+        if month:
+            try:
+                return date(year, month, day)
+            except ValueError:
+                pass
+
+    # "Apr 15" / "abr 15" sin año → asumir año actual, siguiente si ya pasó
+    match = re.match(r"([A-Za-záéíóú]+)\s+(\d{1,2})$", cleaned)
     if match:
         month = _MONTH_ABBR.get(match.group(1).lower())
         day = int(match.group(2))
