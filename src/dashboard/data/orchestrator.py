@@ -57,11 +57,14 @@ def get_last_runs(limit: int = 10) -> list[dict]:
             last_ts = stream.get("lastEventTimestamp", 0)
             if last_ts:
                 from datetime import datetime
+
                 dt = datetime.utcfromtimestamp(last_ts / 1000)
-                runs.append({
-                    "timestamp": dt.strftime("%Y-%m-%d %H:%M UTC"),
-                    "stream": stream["logStreamName"],
-                })
+                runs.append(
+                    {
+                        "timestamp": dt.strftime("%Y-%m-%d %H:%M UTC"),
+                        "stream": stream["logStreamName"],
+                    }
+                )
         return runs
     except Exception:
         return []

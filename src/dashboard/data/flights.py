@@ -10,9 +10,15 @@ from datetime import datetime, timedelta
 import boto3
 from boto3.dynamodb.conditions import Key
 
-from src.shared.user_config import FLIGHT_ESTIMATE_USD, HOTEL_ESTIMATE_USD, BUY_WINDOW_FLIGHTS
+from src.shared.user_config import (
+    FLIGHT_ESTIMATE_USD,
+    HOTEL_ESTIMATE_USD,
+    BUY_WINDOW_FLIGHTS,
+)
 
-TABLE_NAME = os.environ.get("DYNAMODB_TABLE_CONCERTS", "metal-travel-tracker-prod-concerts")
+TABLE_NAME = os.environ.get(
+    "DYNAMODB_TABLE_CONCERTS", "metal-travel-tracker-prod-concerts"
+)
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 COUNTRY_NAMES = {
@@ -31,9 +37,17 @@ COUNTRY_NAMES = {
 
 # Mapa aeropuerto principal por país
 MAIN_AIRPORT = {
-    "CO": "BOG", "CL": "SCL", "BR": "GRU", "US": "JFK",
-    "MX": "MEX", "FI": "HEL", "ES": "MAD", "NO": "OSL",
-    "DE": "FRA", "GR": "ATH", "RO": "OTP",
+    "CO": "BOG",
+    "CL": "SCL",
+    "BR": "GRU",
+    "US": "JFK",
+    "MX": "MEX",
+    "FI": "HEL",
+    "ES": "MAD",
+    "NO": "OSL",
+    "DE": "FRA",
+    "GR": "ATH",
+    "RO": "OTP",
 }
 
 
@@ -42,15 +56,16 @@ def _get_table():
     return dynamodb.Table(TABLE_NAME)
 
 
-def get_historical_prices(origin: str = "LIM", destination: str = "BOG", lookback_days: int = 90) -> list[dict]:
+def get_historical_prices(
+    origin: str = "LIM", destination: str = "BOG", lookback_days: int = 90
+) -> list[dict]:
     """Precios históricos de una ruta para graficar tendencia."""
     table = _get_table()
     from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
     try:
         response = table.query(
             KeyConditionExpression=(
-                Key("pk").eq(f"PRICE#{origin}#{destination}")
-                & Key("sk").gte(from_date)
+                Key("pk").eq(f"PRICE#{origin}#{destination}") & Key("sk").gte(from_date)
             )
         )
         items = response.get("Items", [])
@@ -73,10 +88,10 @@ def get_all_routes_history(lookback_days: int = 90) -> list[dict]:
     from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
     try:
         from boto3.dynamodb.conditions import Attr
+
         response = table.scan(
             FilterExpression=(
-                Attr("pk").begins_with("PRICE#LIM")
-                & Attr("sk").gte(from_date)
+                Attr("pk").begins_with("PRICE#LIM") & Attr("sk").gte(from_date)
             )
         )
         items = response.get("Items", [])
@@ -86,16 +101,18 @@ def get_all_routes_history(lookback_days: int = 90) -> list[dict]:
             if len(parts) >= 3:
                 destination = parts[2]
                 country = _airport_to_country(destination)
-                result.append({
-                    "ruta": f"LIM → {destination}",
-                    "destino_iata": destination,
-                    "country_code": country,
-                    "país": COUNTRY_NAMES.get(country, country),
-                    "fecha_registro": item["sk"][:10],
-                    "precio_usd": float(item.get("price_usd", 0)),
-                    "aerolinea": item.get("airline", ""),
-                    "salida": item.get("departure_date", ""),
-                })
+                result.append(
+                    {
+                        "ruta": f"LIM → {destination}",
+                        "destino_iata": destination,
+                        "country_code": country,
+                        "país": COUNTRY_NAMES.get(country, country),
+                        "fecha_registro": item["sk"][:10],
+                        "precio_usd": float(item.get("price_usd", 0)),
+                        "aerolinea": item.get("airline", ""),
+                        "salida": item.get("departure_date", ""),
+                    }
+                )
         return sorted(result, key=lambda x: x["fecha_registro"])
     except Exception:
         return []
@@ -108,20 +125,22 @@ def get_budget_table() -> list[dict]:
         flight = FLIGHT_ESTIMATE_USD.get(cc, (0, 0))
         hotel = HOTEL_ESTIMATE_USD.get(cc, (0, 0))
         buy_window = BUY_WINDOW_FLIGHTS.get(cc, "N/A")
-        rows.append({
-            "país": flag_name,
-            "country_code": cc,
-            "vuelo_min_usd": flight[0],
-            "vuelo_max_usd": flight[1],
-            "hotel_noche_min_usd": hotel[0],
-            "hotel_noche_max_usd": hotel[1],
-            "hotel_3n_min_usd": hotel[0] * 3,
-            "hotel_3n_max_usd": hotel[1] * 3,
-            "total_3n_min_usd": flight[0] + hotel[0] * 3,
-            "total_3n_max_usd": flight[1] + hotel[1] * 3,
-            "comprar_vuelo": buy_window,
-            "aeropuerto": MAIN_AIRPORT.get(cc, ""),
-        })
+        rows.append(
+            {
+                "país": flag_name,
+                "country_code": cc,
+                "vuelo_min_usd": flight[0],
+                "vuelo_max_usd": flight[1],
+                "hotel_noche_min_usd": hotel[0],
+                "hotel_noche_max_usd": hotel[1],
+                "hotel_3n_min_usd": hotel[0] * 3,
+                "hotel_3n_max_usd": hotel[1] * 3,
+                "total_3n_min_usd": flight[0] + hotel[0] * 3,
+                "total_3n_max_usd": flight[1] + hotel[1] * 3,
+                "comprar_vuelo": buy_window,
+                "aeropuerto": MAIN_AIRPORT.get(cc, ""),
+            }
+        )
     return sorted(rows, key=lambda x: x["total_3n_min_usd"])
 
 

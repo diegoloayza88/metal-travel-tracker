@@ -45,7 +45,8 @@ st.set_page_config(
 )
 
 # CSS personalizado
-st.markdown("""
+st.markdown(
+    """
 <style>
     .metric-card {
         background: #1a1a2e;
@@ -73,7 +74,9 @@ st.markdown("""
         background-color: #0f3460;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Sidebar — navegación y filtros globales
@@ -86,7 +89,13 @@ with st.sidebar:
 
     page = st.radio(
         "Sección",
-        ["🗺️ Conciertos", "🎪 Festivales", "✈️ Vuelos & Precios", "💰 Presupuesto", "⚙️ Control"],
+        [
+            "🗺️ Conciertos",
+            "🎪 Festivales",
+            "✈️ Vuelos & Precios",
+            "💰 Presupuesto",
+            "⚙️ Control",
+        ],
         label_visibility="collapsed",
     )
 
@@ -107,6 +116,7 @@ with st.sidebar:
 # ──────────────────────────────────────────────────────────────────────────────
 # Cargar datos (con cache para no spammear DynamoDB)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @st.cache_data(ttl=300)  # 5 minutos de cache
 def load_concerts(countries, days, watchlist):
@@ -173,7 +183,11 @@ if page == "🗺️ Conciertos":
             min_score = st.selectbox(
                 "Score mínimo watchlist",
                 [0, 8, 10],
-                format_func=lambda x: {0: "Todos", 8: "Parcial (8+)", 10: "Exacto (10)"}[x],
+                format_func=lambda x: {
+                    0: "Todos",
+                    8: "Parcial (8+)",
+                    10: "Exacto (10)",
+                }[x],
             )
         with col_f3:
             source_filter = st.multiselect(
@@ -185,10 +199,9 @@ if page == "🗺️ Conciertos":
         # Aplicar filtros
         filtered = df.copy()
         if search:
-            mask = (
-                filtered["banda"].str.contains(search, case=False, na=False)
-                | filtered["ciudad"].str.contains(search, case=False, na=False)
-            )
+            mask = filtered["banda"].str.contains(
+                search, case=False, na=False
+            ) | filtered["ciudad"].str.contains(search, case=False, na=False)
             filtered = filtered[mask]
         if min_score > 0:
             filtered = filtered[filtered["watchlist_score"] >= min_score]
@@ -200,7 +213,16 @@ if page == "🗺️ Conciertos":
 
         with tab1:
             # Tabla principal
-            display_cols = ["fecha", "banda", "ciudad", "país", "festival", "watchlist_score", "fuente", "ticket_url"]
+            display_cols = [
+                "fecha",
+                "banda",
+                "ciudad",
+                "país",
+                "festival",
+                "watchlist_score",
+                "fuente",
+                "ticket_url",
+            ]
             display = filtered[display_cols].copy()
             display["watchlist_score"] = display["watchlist_score"].apply(
                 lambda x: f"🔥 {x:.0f}" if x > 0 else "–"
@@ -208,7 +230,16 @@ if page == "🗺️ Conciertos":
             display["ticket_url"] = display["ticket_url"].apply(
                 lambda x: f"[🎟️ Tickets]({x})" if x else "–"
             )
-            display.columns = ["Fecha", "Banda / Evento", "Ciudad", "País", "Festival", "Watchlist", "Fuente", "Tickets"]
+            display.columns = [
+                "Fecha",
+                "Banda / Evento",
+                "Ciudad",
+                "País",
+                "Festival",
+                "Watchlist",
+                "Fuente",
+                "Tickets",
+            ]
             st.dataframe(
                 display,
                 use_container_width=True,
@@ -223,7 +254,9 @@ if page == "🗺️ Conciertos":
 
         with tab2:
             # Conciertos por país — barchart
-            country_counts = filtered.groupby("país").size().reset_index(name="conciertos")
+            country_counts = (
+                filtered.groupby("país").size().reset_index(name="conciertos")
+            )
             country_counts = country_counts.sort_values("conciertos", ascending=True)
             fig = px.bar(
                 country_counts,
@@ -243,7 +276,12 @@ if page == "🗺️ Conciertos":
             st.plotly_chart(fig, use_container_width=True)
 
             # Watchlist por país
-            wl = filtered[filtered["watchlist_score"] > 0].groupby("país").size().reset_index(name="watchlist")
+            wl = (
+                filtered[filtered["watchlist_score"] > 0]
+                .groupby("país")
+                .size()
+                .reset_index(name="watchlist")
+            )
             if not wl.empty:
                 fig2 = px.bar(
                     wl,
@@ -262,12 +300,18 @@ if page == "🗺️ Conciertos":
         with tab3:
             # Timeline de conciertos
             filtered_sorted = filtered.copy()
-            filtered_sorted["fecha_dt"] = pd.to_datetime(filtered_sorted["fecha"], errors="coerce")
+            filtered_sorted["fecha_dt"] = pd.to_datetime(
+                filtered_sorted["fecha"], errors="coerce"
+            )
             filtered_sorted = filtered_sorted.dropna(subset=["fecha_dt"])
 
             # Agrupar por semana y país
-            filtered_sorted["semana"] = filtered_sorted["fecha_dt"].dt.to_period("M").astype(str)
-            timeline = filtered_sorted.groupby(["semana", "país"]).size().reset_index(name="n")
+            filtered_sorted["semana"] = (
+                filtered_sorted["fecha_dt"].dt.to_period("M").astype(str)
+            )
+            timeline = (
+                filtered_sorted.groupby(["semana", "país"]).size().reset_index(name="n")
+            )
 
             fig3 = px.bar(
                 timeline,
@@ -320,13 +364,20 @@ elif page == "🎪 Festivales":
 
                 with col_b:
                     cc = fest["country_code"]
-                    from src.shared.user_config import FLIGHT_ESTIMATE_USD, HOTEL_ESTIMATE_USD, BUY_WINDOW_FLIGHTS
+                    from src.shared.user_config import (
+                        FLIGHT_ESTIMATE_USD,
+                        HOTEL_ESTIMATE_USD,
+                        BUY_WINDOW_FLIGHTS,
+                    )
+
                     flight = FLIGHT_ESTIMATE_USD.get(cc, (0, 0))
                     hotel = HOTEL_ESTIMATE_USD.get(cc, (0, 0))
                     st.markdown("**💰 Estimado desde Lima:**")
                     st.markdown(f"✈️ Vuelo: `${flight[0]}–${flight[1]}`")
                     st.markdown(f"🏨 Hotel 3n: `${hotel[0]*3}–${hotel[1]*3}`")
-                    st.markdown(f"📦 Total: `${flight[0]+hotel[0]*3}–${flight[1]+hotel[1]*3}`")
+                    st.markdown(
+                        f"📦 Total: `${flight[0]+hotel[0]*3}–${flight[1]+hotel[1]*3}`"
+                    )
                     st.markdown(f"🗓️ Comprar: *{BUY_WINDOW_FLIGHTS.get(cc, 'N/A')}*")
                     if fest.get("ticket_url"):
                         st.link_button("🎟️ Ver tickets", fest["ticket_url"])
@@ -337,12 +388,16 @@ elif page == "🎪 Festivales":
 
 elif page == "✈️ Vuelos & Precios":
     st.header("✈️ Vuelos & Precios históricos")
-    st.caption("Precios reales registrados por el Flight Agent en las últimas 90 días · Origen: Lima (LIM)")
+    st.caption(
+        "Precios reales registrados por el Flight Agent en las últimas 90 días · Origen: Lima (LIM)"
+    )
 
     history = load_flight_history()
 
     if not history:
-        st.info("Aún no hay suficiente historial de precios. El sistema necesita más runs diarios para construir el histórico (mínimo ~7 días).")
+        st.info(
+            "Aún no hay suficiente historial de precios. El sistema necesita más runs diarios para construir el histórico (mínimo ~7 días)."
+        )
         st.markdown("""
         **¿Qué se registra?**
         - Cada vez que el orchestrator corre, el Flight Agent busca vuelos LIM → destino
@@ -365,14 +420,16 @@ elif page == "✈️ Vuelos & Precios":
 
         # Gráfico de tendencia
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=ruta_df["fecha_registro"],
-            y=ruta_df["precio_usd"],
-            mode="lines+markers",
-            name="Precio USD",
-            line=dict(color="#e94560", width=2),
-            marker=dict(size=6),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=ruta_df["fecha_registro"],
+                y=ruta_df["precio_usd"],
+                mode="lines+markers",
+                name="Precio USD",
+                line=dict(color="#e94560", width=2),
+                marker=dict(size=6),
+            )
+        )
         avg = ruta_df["precio_usd"].mean()
         fig.add_hline(
             y=avg,
@@ -393,19 +450,28 @@ elif page == "✈️ Vuelos & Precios":
 
         # Comparativa entre rutas
         st.subheader("📊 Comparativa de rutas")
-        summary = hist_df.groupby("ruta").agg(
-            min_usd=("precio_usd", "min"),
-            avg_usd=("precio_usd", "mean"),
-            max_usd=("precio_usd", "max"),
-            registros=("precio_usd", "count"),
-        ).reset_index().sort_values("avg_usd")
+        summary = (
+            hist_df.groupby("ruta")
+            .agg(
+                min_usd=("precio_usd", "min"),
+                avg_usd=("precio_usd", "mean"),
+                max_usd=("precio_usd", "max"),
+                registros=("precio_usd", "count"),
+            )
+            .reset_index()
+            .sort_values("avg_usd")
+        )
 
         fig2 = px.bar(
             summary,
             x="ruta",
             y=["min_usd", "avg_usd", "max_usd"],
             barmode="group",
-            color_discrete_map={"min_usd": "#2ecc71", "avg_usd": "#f39c12", "max_usd": "#e74c3c"},
+            color_discrete_map={
+                "min_usd": "#2ecc71",
+                "avg_usd": "#f39c12",
+                "max_usd": "#e74c3c",
+            },
             labels={"value": "USD", "variable": "Precio"},
             title="Rango de precios por ruta (mín / prom / máx)",
         )
@@ -419,7 +485,9 @@ elif page == "✈️ Vuelos & Precios":
 
         with st.expander("📋 Ver todos los registros"):
             st.dataframe(
-                hist_df[["fecha_registro", "ruta", "precio_usd", "aerolinea", "salida"]].sort_values("fecha_registro", ascending=False),
+                hist_df[
+                    ["fecha_registro", "ruta", "precio_usd", "aerolinea", "salida"]
+                ].sort_values("fecha_registro", ascending=False),
                 use_container_width=True,
             )
 
@@ -429,7 +497,9 @@ elif page == "✈️ Vuelos & Precios":
 
 elif page == "💰 Presupuesto":
     st.header("💰 Calculadora de presupuesto")
-    st.caption("Estimados desde Lima (LIM). Los precios reales dependen de fechas y aerolínea.")
+    st.caption(
+        "Estimados desde Lima (LIM). Los precios reales dependen de fechas y aerolínea."
+    )
 
     budget_data = load_budget()
     budget_df = pd.DataFrame(budget_data)
@@ -446,12 +516,17 @@ elif page == "💰 Presupuesto":
     with col_c2:
         nights = st.number_input("Noches de hotel", min_value=1, max_value=14, value=3)
     with col_c3:
-        ticket_price = st.number_input("Precio entrada (USD)", min_value=0, value=50, step=10)
+        ticket_price = st.number_input(
+            "Precio entrada (USD)", min_value=0, value=50, step=10
+        )
 
     row = next((r for r in budget_data if r["country_code"] == dest_country), None)
     if row:
         f_min, f_max = row["vuelo_min_usd"], row["vuelo_max_usd"]
-        h_min, h_max = row["hotel_noche_min_usd"] * nights, row["hotel_noche_max_usd"] * nights
+        h_min, h_max = (
+            row["hotel_noche_min_usd"] * nights,
+            row["hotel_noche_max_usd"] * nights,
+        )
         t_min = f_min + h_min + ticket_price
         t_max = f_max + h_max + ticket_price
 
@@ -472,7 +547,13 @@ elif page == "💰 Presupuesto":
     with col_n1:
         nights_compare = st.slider("Noches para comparativa", 1, 7, 3)
     with col_n2:
-        ticket_compare = st.number_input("Entrada estimada (USD)", min_value=0, value=60, step=10, key="compare_ticket")
+        ticket_compare = st.number_input(
+            "Entrada estimada (USD)",
+            min_value=0,
+            value=60,
+            step=10,
+            key="compare_ticket",
+        )
 
     compare_data = []
     for r in budget_data:
@@ -480,25 +561,31 @@ elif page == "💰 Presupuesto":
         f_min, f_max = r["vuelo_min_usd"], r["vuelo_max_usd"]
         h_min = r["hotel_noche_min_usd"] * nights_compare
         h_max = r["hotel_noche_max_usd"] * nights_compare
-        compare_data.append({
-            "país": r["país"],
-            "vuelo": f"${f_min}–${f_max}",
-            "hotel": f"${h_min}–${h_max}",
-            "total_min": f_min + h_min + ticket_compare,
-            "total_max": f_max + h_max + ticket_compare,
-            "comprar_vuelo": r["comprar_vuelo"],
-        })
+        compare_data.append(
+            {
+                "país": r["país"],
+                "vuelo": f"${f_min}–${f_max}",
+                "hotel": f"${h_min}–${h_max}",
+                "total_min": f_min + h_min + ticket_compare,
+                "total_max": f_max + h_max + ticket_compare,
+                "comprar_vuelo": r["comprar_vuelo"],
+            }
+        )
 
     compare_df = pd.DataFrame(compare_data).sort_values("total_min")
-    compare_df["total"] = compare_df.apply(lambda r: f"${r['total_min']}–${r['total_max']}", axis=1)
+    compare_df["total"] = compare_df.apply(
+        lambda r: f"${r['total_min']}–${r['total_max']}", axis=1
+    )
 
     st.dataframe(
-        compare_df[["país", "vuelo", "hotel", "total", "comprar_vuelo"]].rename(columns={
-            "vuelo": "✈️ Vuelo (est.)",
-            "hotel": "🏨 Hotel",
-            "total": "📦 Total",
-            "comprar_vuelo": "🗓️ Cuándo comprar",
-        }),
+        compare_df[["país", "vuelo", "hotel", "total", "comprar_vuelo"]].rename(
+            columns={
+                "vuelo": "✈️ Vuelo (est.)",
+                "hotel": "🏨 Hotel",
+                "total": "📦 Total",
+                "comprar_vuelo": "🗓️ Cuándo comprar",
+            }
+        ),
         use_container_width=True,
         hide_index=True,
     )
@@ -530,7 +617,9 @@ elif page == "⚙️ Control":
 
     # Trigger manual
     st.subheader("🔄 Ejecutar búsqueda manual")
-    st.caption("Lanza el orchestrator para buscar nuevos conciertos y vuelos. Tarda ~5 minutos.")
+    st.caption(
+        "Lanza el orchestrator para buscar nuevos conciertos y vuelos. Tarda ~5 minutos."
+    )
 
     col_btn, col_info = st.columns([1, 3])
     with col_btn:

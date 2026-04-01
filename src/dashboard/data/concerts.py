@@ -12,7 +12,9 @@ from decimal import Decimal
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-TABLE_NAME = os.environ.get("DYNAMODB_TABLE_CONCERTS", "metal-travel-tracker-prod-concerts")
+TABLE_NAME = os.environ.get(
+    "DYNAMODB_TABLE_CONCERTS", "metal-travel-tracker-prod-concerts"
+)
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 ALL_COUNTRIES = ["CO", "CL", "BR", "US", "MX", "FI", "ES", "NO", "DE", "GR", "RO"]
@@ -82,20 +84,22 @@ def get_all_concerts(
         if not festival_name and source == "festivals":
             festival_name = item.get("band_name", "")
 
-        concerts.append({
-            "país": COUNTRY_NAMES.get(country_code, country_code),
-            "country_code": country_code,
-            "banda": item.get("band_name", ""),
-            "fecha": item.get("event_date", ""),
-            "ciudad": item.get("city", ""),
-            "venue": item.get("venue", ""),
-            "festival": festival_name,
-            "fuente": source,
-            "watchlist_score": score,
-            "watchlist_match": bool(item.get("watchlist_match", False)),
-            "ticket_url": item.get("ticket_url", ""),
-            "confidence": float(item.get("confidence", 0) or 0),
-        })
+        concerts.append(
+            {
+                "país": COUNTRY_NAMES.get(country_code, country_code),
+                "country_code": country_code,
+                "banda": item.get("band_name", ""),
+                "fecha": item.get("event_date", ""),
+                "ciudad": item.get("city", ""),
+                "venue": item.get("venue", ""),
+                "festival": festival_name,
+                "fuente": source,
+                "watchlist_score": score,
+                "watchlist_match": bool(item.get("watchlist_match", False)),
+                "ticket_url": item.get("ticket_url", ""),
+                "confidence": float(item.get("confidence", 0) or 0),
+            }
+        )
 
     concerts.sort(key=lambda x: x["fecha"])
     return concerts

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pytest",
+      "runtimeExecutable": "pytest",
+      "runtimeArgs": ["tests/", "-v"],
+      "port": 0
+    }
+  ]
+}
