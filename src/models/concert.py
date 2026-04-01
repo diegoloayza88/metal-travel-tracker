@@ -145,6 +145,11 @@ class Concert:
             "ticket_url": {"S": self.ticket_url or ""},
             "confidence": {"N": str(self.confidence)},
             "created_at": {"S": self.created_at.isoformat()},
+            **(
+                {"festival_name": {"S": self.festival_name}}
+                if self.festival_name
+                else {}
+            ),
         }
 
 
