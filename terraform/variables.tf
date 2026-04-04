@@ -118,10 +118,10 @@ variable "booking_affiliate_id" {
 # ---- Schedule ----------------------------------------------------------------
 
 variable "daily_run_cron" {
-  description = "Cron expression for daily execution (UTC). Lima is UTC-5."
+  description = "Cron expression for weekly execution (UTC). Lima is UTC-5."
   type        = string
-  # 13:00 UTC = 08:00 Lima (Lima time)
-  default = "cron(0 13 * * ? *)"
+  # 13:00 UTC = 08:00 Lima every Sunday
+  default = "cron(0 13 ? * SUN *)"
 }
 
 # ---- Lambda ------------------------------------------------------------------
