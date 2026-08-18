@@ -1,12 +1,13 @@
 """
 agents/reporter_agent/handler.py
 ---------------------------------
-El Reporter Agent recibe los deals y conciertos del día y genera un reporte
-en lenguaje natural usando Bedrock. Luego lo envía por SMS, Email y Discord.
+The Reporter Agent receives the deals and concerts collected by the
+Orchestrator and drafts a natural-language report using Bedrock, then
+sends it via SMS, Email, and Discord.
 
-Es el último eslabón de la cadena y el que Diego ve directamente.
-El objetivo es que el reporte suene como un mensaje de un amigo metalero
-que encontró buenas opciones, no como un reporte corporativo aburrido.
+It's the last link in the chain and the one Diego actually reads. The goal
+is for the report to sound like a message from a metalhead friend who found
+good options, not a boring corporate report.
 """
 
 import json

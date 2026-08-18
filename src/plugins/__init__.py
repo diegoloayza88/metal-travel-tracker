@@ -1,21 +1,22 @@
 """
 plugins/__init__.py
 --------------------
-Registro central de plugins de fuentes de conciertos.
+Central registry of concert source plugins.
 
-Plugins activos:
-  - TicketmasterPlugin   → API oficial, cubre US/MX/ES/FI/BR/CO/CL
-  - SerpApiEventsPlugin  → Google Events via SerpAPI, fuerte en CO/CL/BR
+Active plugins:
+  - TicketmasterPlugin   -> Official API, covers all 11 monitored countries
+  - SerpApiEventsPlugin  -> Google Events via SerpAPI, strongest for CO/CL/BR/MX
+  - FestivalsPlugin      -> 7 hand-picked festival websites, official lineups
 
-Plugins desactivados (mantenidos para referencia):
-  - BandsintownPlugin   → API deprecada / sin resultados útiles
-  - EventbritePlugin    → Endpoint /v3/events/search/ descontinuado para cuentas no-partner
-  - SongkickPlugin      → Sin acceso a API key
-  - MetalArchivesPlugin → Bloquea IPs de AWS con 403
+Disabled plugins (kept for reference):
+  - BandsintownPlugin   -> Deprecated API / no useful results
+  - EventbritePlugin    -> /v3/events/search/ endpoint discontinued for non-partner accounts
+  - SongkickPlugin      -> No API key access
+  - MetalArchivesPlugin -> Blocks AWS IPs with 403
 
-Para agregar un nuevo plugin:
-  1. Crea tu archivo en este directorio implementando ConcertSourcePlugin
-  2. Impórtalo aquí y agrégalo a `plugin_classes` en get_active_plugins()
+To add a new plugin:
+  1. Create a file in this directory implementing ConcertSourcePlugin
+  2. Import it here and add it to `plugin_classes` in get_active_plugins()
 """
 
 from src.plugins.base import ConcertSourcePlugin

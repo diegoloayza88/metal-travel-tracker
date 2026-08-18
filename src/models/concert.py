@@ -1,8 +1,8 @@
 """
 models/concert.py
 -----------------
-Modelos de datos centrales del proyecto.
-Todos los agentes y plugins usan estas mismas clases para garantizar consistencia.
+Core data models for the project.
+All agents and plugins use these same classes to guarantee consistency.
 """
 
 from dataclasses import dataclass, field

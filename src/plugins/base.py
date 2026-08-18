@@ -1,11 +1,11 @@
 """
 plugins/base.py
 ---------------
-Interfaz abstracta que todos los plugins de fuentes de conciertos deben implementar.
+Abstract interface that every concert source plugin must implement.
 
-Para agregar una nueva fuente al sistema, simplemente crea un archivo nuevo en este
-directorio e implementa esta clase base. El Concert Agent descubrirá y usará el plugin
-automáticamente si lo registras en plugins/__init__.py.
+To add a new source to the system, create a new file in this directory and
+implement this base class. The Orchestrator will discover and use the plugin
+automatically once you register it in plugins/__init__.py.
 """
 
 from abc import ABC, abstractmethod

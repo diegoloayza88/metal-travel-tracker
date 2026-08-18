@@ -1,17 +1,17 @@
 """
 plugins/serpapi_events.py
 --------------------------
-Plugin que usa SerpAPI Google Events para descubrir conciertos de metal.
+Plugin that uses SerpAPI Google Events to discover metal concerts.
 
-Reutiliza la misma SERPAPI_KEY ya configurada en el sistema para vuelos.
-Es especialmente potente para países con menor cobertura en APIs oficiales:
-Colombia, Chile y Brasil.
+Reuses the same SERPAPI_KEY already configured elsewhere in the system for
+flights. Especially strong for countries with weaker official API coverage:
+Colombia, Chile, Brazil, and Mexico.
 
-Documentación: https://serpapi.com/google-events-api
-Precio:        La misma cuenta que se usa para vuelos.
+Docs:  https://serpapi.com/google-events-api
+Price: Same account used for flights.
 
-Variable de entorno requerida:
-  SERPAPI_KEY  →  Compartida con el flight_agent
+Required environment variable:
+  SERPAPI_KEY  ->  Shared with flight_agent
 """
 
 import asyncio

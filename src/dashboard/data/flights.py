@@ -1,7 +1,7 @@
 """
 dashboard/data/flights.py
 -------------------------
-Capa de datos para vuelos y precios históricos.
+Data access layer for flights and historical prices.
 """
 
 import os

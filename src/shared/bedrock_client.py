@@ -1,14 +1,14 @@
 """
 shared/bedrock_client.py
 ------------------------
-Cliente centralizado para interactuar con Amazon Bedrock.
-Todos los agentes usan este cliente en lugar de instanciar boto3 directamente.
+Centralized client for interacting with Amazon Bedrock.
+Every agent uses this client instead of instantiating boto3 directly.
 
-Modelos disponibles en Bedrock (cross-region inference profiles con prefijo us.):
-  - us.anthropic.claude-sonnet-4-6            → El que usamos (último modelo disponible)
-  - us.anthropic.claude-haiku-4-5-20251001-v1:0  → Más rápido y barato (clasificaciones simples)
+Models available on Bedrock (cross-region inference profiles, "us." prefix):
+  - us.anthropic.claude-sonnet-4-6              -> What we use (latest available model)
+  - us.anthropic.claude-haiku-4-5-20251001-v1:0  -> Faster and cheaper (simple classifications)
 
-El modelo principal puede sobreescribirse vía la variable de entorno BEDROCK_MODEL_ID.
+The main model can be overridden via the BEDROCK_MODEL_ID environment variable.
 """
 
 import json

@@ -1,16 +1,16 @@
 """
 plugins/metal_archives.py
 --------------------------
-Plugin para scraping de la sección de shows de Encyclopaedia Metallum.
-Metal-Archives es la base de datos más completa del metal underground mundial.
-Su sección de shows (https://www.metal-archives.com/shows) lista conciertos
-confirmados enviados por la comunidad.
+Plugin for scraping the shows section of Encyclopaedia Metallum.
+Metal-Archives is the most complete database of underground metal worldwide.
+Its shows section (https://www.metal-archives.com/shows) lists confirmed
+concerts submitted by the community.
 
-Tier 2: Scraping — más frágil que APIs oficiales pero excelente cobertura
-del metal underground que Songkick y Bandsintown no tienen.
+Tier 2: Scraping — more fragile than official APIs, but excellent coverage
+of underground metal that Songkick and Bandsintown don't have.
 
-IMPORTANTE: Respetar el rate limiting. Metal-Archives es un sitio comunitario
-sin ánimo de lucro. Pausas de al menos 2 segundos entre requests.
+IMPORTANT: Respect rate limiting. Metal-Archives is a non-profit community
+site. Pause at least 2 seconds between requests.
 """
 
 import asyncio

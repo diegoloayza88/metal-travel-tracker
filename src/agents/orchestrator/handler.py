@@ -1,21 +1,23 @@
 """
 agents/orchestrator/handler.py
 -------------------------------
-El Orchestrator Agent es el cerebro del sistema.
-Es invocado por AWS Step Functions una vez al día y coordina a todos los demás agentes.
+The Orchestrator Agent is the brain of the system. It's invoked directly by
+an EventBridge Scheduler once a week (Sundays, 8am Lima time) and coordinates
+every other agent.
 
-Responsabilidades:
-  1. Decidir qué fuentes de conciertos consultar hoy
-  2. Deduplicar y validar conciertos encontrados
-  3. Priorizar conciertos para búsqueda de vuelos (los más próximos primero)
-  4. Invocar al Flight Agent para conciertos sin vuelo buscado
-  5. Invocar al Hotel Agent para los mejores deals de vuelos
-  6. Invocar al Reporter Agent para generar y enviar el reporte diario
+Responsibilities:
+  1. Collect concerts from all active plugins (Ticketmaster, SerpAPI Events, Festivals)
+  2. Deduplicate and classify the concerts found
+  3. Score each concert against the user's watchlist (exact/partial band match,
+     or a genre-based discovery score when no band matches)
+  4. Prioritize concerts for flight search (highest watchlist score first)
+  5. Invoke the Flight Agent for concerts without a flight search yet
+  6. Invoke the Hotel Agent for the best flight deals found
+  7. Invoke the Reporter Agent to generate and send the weekly report
 
-El Orchestrator usa el LLM para:
-  - Clasificar si una banda es de metal cuando hay dudas
-  - Priorizar qué eventos son más relevantes para notificar
-  - Decidir si el día de hoy amerita notificación (evitar spam)
+The Orchestrator uses the LLM as a safety-net classifier only for concert
+sources that don't already guarantee metal-genre context on their own (the
+3 currently active plugins are trusted directly — see classify_and_filter).
 """
 
 import json

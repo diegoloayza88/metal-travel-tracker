@@ -1,15 +1,15 @@
 """
 dashboard/app.py
 ----------------
-Dashboard principal de Metal Travel Tracker.
+Main Metal Travel Tracker dashboard.
 
-Ejecutar localmente:
+Run locally:
     streamlit run src/dashboard/app.py
 
-Variables de entorno necesarias:
+Required environment variables:
     AWS_REGION=us-east-1
     DYNAMODB_TABLE_CONCERTS=metal-travel-tracker-prod-concerts
-    AWS_PROFILE=<tu perfil> (o AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
+    AWS_PROFILE=<your profile> (or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
 """
 
 import os

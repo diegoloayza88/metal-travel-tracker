@@ -1,14 +1,13 @@
 """
 shared/user_config.py
 ---------------------
-Preferencias personales del usuario: watchlist de bandas, aeropuerto de origen
-y parámetros de viaje.
+Personal user preferences: band watchlist, home airport, and travel
+parameters.
 
-Se almacena en DynamoDB bajo pk="CONFIG#USER", sk="preferences" (misma tabla
-de conciertos). Todos los agentes que necesitan personalización la cargan una
-sola vez al inicio.
+Stored in DynamoDB under pk="CONFIG#USER", sk="preferences" (same table as
+concerts). Every agent that needs personalization loads it once at startup.
 
-Uso:
+Usage:
     prefs = load_user_preferences()
     if prefs.is_watchlist_match("Mgła"):
         ...

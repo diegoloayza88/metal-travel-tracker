@@ -1,12 +1,12 @@
 """
 plugins/bandsintown.py
 ----------------------
-Plugin para la API de Bandsintown.
-Complementa a Songkick con cobertura adicional, especialmente útil para
-artistas que tienen mayor presencia en Bandsintown que en Songkick.
+Plugin for the Bandsintown API.
+Complements Songkick with additional coverage, especially useful for artists
+with a stronger presence on Bandsintown than on Songkick.
 
-Documentación API: https://app.swaggerhub.com/apis/Bandsintown/PublicAPI/3.0.0
-Nota: Bandsintown requiere un APP_ID (nombre de tu app), no una API key secreta.
+API docs: https://app.swaggerhub.com/apis/Bandsintown/PublicAPI/3.0.0
+Note: Bandsintown requires an APP_ID (your app's name), not a secret API key.
 """
 
 import asyncio

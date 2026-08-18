@@ -1,20 +1,20 @@
 """
 processors/whatsapp_export_parser/handler.py
 --------------------------------------------
-Procesador del archivo .txt exportado del grupo/comunidad de WhatsApp.
+Processor for the .txt file exported from a WhatsApp group/community chat.
 
-Flujo:
-  1. Se sube el .txt exportado de WhatsApp al bucket S3 (manualmente, 1 vez/semana)
-  2. S3 dispara este Lambda automáticamente via Event Notification
-  3. El Lambda lee el archivo, extrae mensajes individuales
-  4. Por cada mensaje, llama a Bedrock (Claude) para extraer info estructurada
-  5. Los conciertos válidos se guardan en DynamoDB
-  6. Se notifica vía Discord cuántos conciertos nuevos se encontraron
+Flow:
+  1. The exported WhatsApp .txt is uploaded to the S3 bucket (manually, ~weekly)
+  2. S3 triggers this Lambda automatically via an Event Notification
+  3. The Lambda reads the file and extracts individual messages
+  4. For each message, it calls Bedrock (Claude) to extract structured info
+  5. Valid concerts are saved to DynamoDB
+  6. Discord is notified with how many new concerts were found
 
-Formato del .txt exportado por WhatsApp (Android/iOS):
+WhatsApp .txt export format (Android/iOS):
   "12/2/26, 10:23 a. m. - Juan: CONFIRMADO Sepultura en Bogotá 15 marzo"
   "12/2/26, 10:23 a. m. - Juan: Teatro Royal. Entradas desde $80.000"
-  (los mensajes largos pueden ocupar múltiples líneas)
+  (long messages can span multiple lines)
 """
 
 import json
