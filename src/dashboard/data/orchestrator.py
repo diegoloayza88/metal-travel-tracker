@@ -1,7 +1,7 @@
 """
 dashboard/data/orchestrator.py
 -------------------------------
-Permite disparar el orchestrator Lambda desde el dashboard.
+Lets the dashboard trigger the orchestrator Lambda manually.
 """
 
 import json

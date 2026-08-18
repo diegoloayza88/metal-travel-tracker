@@ -1,12 +1,12 @@
 """
 plugins/songkick.py
 -------------------
-Plugin para la API oficial de Songkick.
-Songkick tiene buena cobertura de artistas internacionales en todos los países
-de interés, especialmente Chile, Brasil, España y Finlandia.
+Plugin for the official Songkick API.
+Songkick has good coverage of international artists across all monitored
+countries, especially Chile, Brazil, Spain, and Finland.
 
-Documentación API: https://www.songkick.com/developer
-Límite: ~1 llamada/segundo en plan gratuito.
+API docs: https://www.songkick.com/developer
+Rate limit: ~1 call/second on the free plan.
 """
 
 import asyncio

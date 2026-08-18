@@ -1,8 +1,8 @@
 """
 dashboard/data/concerts.py
 --------------------------
-Capa de datos para conciertos. Puede reutilizarse como Lambda handler
-de API Gateway en la futura migración a React.
+Data access layer for concerts. Can be reused as an API Gateway Lambda
+handler in a future migration to a React frontend.
 """
 
 import os

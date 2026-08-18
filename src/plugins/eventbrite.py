@@ -1,12 +1,12 @@
 """
 plugins/eventbrite.py
 ---------------------
-Plugin para la API de Eventbrite.
-Eventbrite es especialmente útil para Latinoamérica porque los promotores
-locales la usan frecuentemente para la venta de tickets.
+Plugin for the Eventbrite API.
+Eventbrite is especially useful for Latin America because local promoters
+frequently use it for ticket sales.
 
-Documentación: https://www.eventbrite.com/platform/api
-Autenticación: Bearer token (API key personal)
+Docs: https://www.eventbrite.com/platform/api
+Auth: Bearer token (personal API key)
 """
 
 import asyncio

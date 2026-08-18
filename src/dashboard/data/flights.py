@@ -1,11 +1,11 @@
 """
 dashboard/data/flights.py
 -------------------------
-Capa de datos para vuelos y precios históricos.
+Data access layer for flights and historical prices.
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -61,7 +61,7 @@ def get_historical_prices(
 ) -> list[dict]:
     """Precios históricos de una ruta para graficar tendencia."""
     table = _get_table()
-    from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
+    from_date = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
     try:
         response = table.query(
             KeyConditionExpression=(
@@ -85,7 +85,7 @@ def get_historical_prices(
 def get_all_routes_history(lookback_days: int = 90) -> list[dict]:
     """Todos los precios históricos disponibles (scan por pk prefix PRICE#)."""
     table = _get_table()
-    from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
+    from_date = (datetime.now(timezone.utc) - timedelta(days=lookback_days)).isoformat()
     try:
         from boto3.dynamodb.conditions import Attr
 

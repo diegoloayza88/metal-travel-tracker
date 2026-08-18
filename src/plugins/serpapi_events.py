@@ -1,24 +1,24 @@
 """
 plugins/serpapi_events.py
 --------------------------
-Plugin que usa SerpAPI Google Events para descubrir conciertos de metal.
+Plugin that uses SerpAPI Google Events to discover metal concerts.
 
-Reutiliza la misma SERPAPI_KEY ya configurada en el sistema para vuelos.
-Es especialmente potente para países con menor cobertura en APIs oficiales:
-Colombia, Chile y Brasil.
+Reuses the same SERPAPI_KEY already configured elsewhere in the system for
+flights. Especially strong for countries with weaker official API coverage:
+Colombia, Chile, Brazil, and Mexico.
 
-Documentación: https://serpapi.com/google-events-api
-Precio:        La misma cuenta que se usa para vuelos.
+Docs:  https://serpapi.com/google-events-api
+Price: Same account used for flights.
 
-Variable de entorno requerida:
-  SERPAPI_KEY  →  Compartida con el flight_agent
+Required environment variable:
+  SERPAPI_KEY  ->  Shared with flight_agent
 """
 
 import asyncio
 import logging
 import os
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import httpx
@@ -405,7 +405,7 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
           3. Regex sobre cualquier campo de texto del evento
         """
         date_info = event.get("date", {})
-        current_year = datetime.utcnow().year
+        current_year = datetime.now(timezone.utc).year
 
         for raw in [date_info.get("start_date", ""), date_info.get("when", "")]:
             parsed = _try_parse_date(raw, current_year)

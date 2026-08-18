@@ -1,34 +1,34 @@
 """
 plugins/festivals.py
 --------------------
-Plugin dedicado a los festivales de metal más importantes del circuito
-underground y tradicional. A diferencia de Ticketmaster o SerpAPI Events,
-este plugin conoce los festivales específicos que nos interesan y va
-directamente a sus sitios web a buscar el lineup confirmado.
+Plugin dedicated to the most important metal festivals in the underground
+and traditional circuit. Unlike Ticketmaster or SerpAPI Events, this plugin
+knows the specific festivals we care about and goes directly to their
+websites to fetch the confirmed lineup.
 
-Festivales monitoreados:
-  - Steelfest (Finlandia, junio)
-  - Keep It True (Alemania, abril)
-  - Inferno Metal Fest (Noruega, abril)
-  - Under the Black Sun (Alemania, junio/julio)
-  - Maryland Deathfest (EE.UU., mayo/junio)
-  - Up the Hammers (Grecia, marzo)
-  - Hell's Heroes (EE.UU., enero/febrero)
+Festivals monitored:
+  - Steelfest (Finland, June)
+  - Keep It True (Germany, April)
+  - Inferno Metal Fest (Norway, April)
+  - Under the Black Sun (Germany, June/July)
+  - Maryland Deathfest (USA, May/June)
+  - Up the Hammers (Greece, March)
+  - Hell's Heroes (USA, January/February)
 
-Nota: Underground for the Masses (Colombia) y Candelabrum Metal Fest (México)
-se retiraron de este plugin — sus sitios son Facebook/Instagram, que bloquean
-IPs de AWS, así que solo producían placeholders de "lineup por anunciar".
-SerpApiEventsPlugin ya captura estos festivales como conciertos individuales
-con nombre real de bandas (queries con skip_filter=True para CO/MX).
+Note: Underground for the Masses (Colombia) and Candelabrum Metal Fest
+(Mexico) were removed from this plugin — their sites are Facebook/Instagram,
+which block AWS IPs, so they only ever produced "lineup TBA" placeholders.
+SerpApiEventsPlugin already captures both festivals as individual concerts
+with real band names (skip_filter=True queries for CO/MX).
 
-Estrategia:
-  1. Hace HTTP GET al sitio oficial de cada festival.
-  2. Extrae el texto de la página.
-  3. Usa Bedrock LLM para parsear bands confirmadas + fechas + precio.
-  4. Guarda el resultado en DynamoDB con TTL de 7 días (caché).
-  5. Crea un objeto Concert por cada banda confirmada.
+Strategy:
+  1. HTTP GET the festival's official website.
+  2. Extract the page's text content.
+  3. Use the Bedrock LLM to parse confirmed bands + dates + price.
+  4. Cache the result in DynamoDB with a 7-day TTL.
+  5. Create one Concert object per confirmed band.
 
-Variable de entorno requerida: ninguna adicional (usa DYNAMODB_TABLE_CONCERTS y AWS_REGION).
+Required environment variable: none extra (uses DYNAMODB_TABLE_CONCERTS and AWS_REGION).
 """
 
 import asyncio
@@ -37,7 +37,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import boto3
@@ -431,7 +431,13 @@ Si no hay bandas confirmadas o el lineup no está anunciado, responde:
                 return None
 
             fetched_at = datetime.fromisoformat(item.get("fetched_at", "2000-01-01"))
-            if datetime.utcnow() - fetched_at > timedelta(days=_CACHE_TTL_DAYS):
+            if fetched_at.tzinfo is None:
+                # Compatibilidad con entradas de caché escritas antes de migrar
+                # a datetimes timezone-aware — se asume que ya estaban en UTC.
+                fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - fetched_at > timedelta(
+                days=_CACHE_TTL_DAYS
+            ):
                 return None  # Caché expirada
 
             bands = list(item.get("bands", []))
@@ -448,13 +454,13 @@ Si no hay bandas confirmadas o el lineup no está anunciado, responde:
         try:
             dynamodb = boto3.resource("dynamodb", region_name=self._region)
             table = dynamodb.Table(self._table_name)
-            ttl = int((datetime.utcnow() + timedelta(days=30)).timestamp())
+            ttl = int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp())
             table.put_item(
                 Item={
                     "pk": f"FESTIVAL_CACHE#{festival_name}",
                     "sk": str(year),
                     "bands": bands,
-                    "fetched_at": datetime.utcnow().isoformat(),
+                    "fetched_at": datetime.now(timezone.utc).isoformat(),
                     "ttl": ttl,
                 }
             )

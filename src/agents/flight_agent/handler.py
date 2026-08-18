@@ -1,20 +1,21 @@
 """
 agents/flight_agent/handler.py
 -------------------------------
-El Flight Agent busca vuelos desde Lima (LIM) hacia el país del concierto
-y determina si el precio es un buen deal comparado con el histórico.
+The Flight Agent searches for flights from Lima (LIM) to the concert's
+country and determines whether the price is a good deal compared to
+historical prices.
 
-Fuentes de vuelos:
-  1. Amadeus API  → Fuente primaria, gratuita, datos GDS (mismos que Google Flights)
-  2. SerpAPI      → Fuente secundaria, scraping de Google Flights (pago, opcional)
+Flight sources:
+  1. Amadeus API  -> Primary source, free tier, GDS data (same as Google Flights)
+  2. SerpAPI      -> Secondary source, Google Flights scraping (paid, optional)
 
-Lógica de análisis de precios:
-  - Guarda cada precio encontrado en DynamoDB (histórico de 90 días)
-  - Calcula el promedio y percentil 25 de los últimos 60 días para esa ruta
-  - Un vuelo es GOOD DEAL si está <= percentil 25
-  - Un vuelo es EXCELLENT si está <= percentil 25 * 0.85
+Price analysis logic:
+  - Stores every price found in DynamoDB (90-day history)
+  - Computes the average and 25th percentile of the last 60 days for that route
+  - A flight is a GOOD DEAL if it's <= 25th percentile
+  - A flight is EXCELLENT if it's <= 25th percentile * 0.85
 
-Aeropuerto de origen: LIM (Lima, Perú - Jorge Chávez)
+Origin airport: LIM (Lima, Peru - Jorge Chávez)
 """
 
 import json

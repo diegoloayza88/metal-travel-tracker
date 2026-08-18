@@ -1,13 +1,13 @@
 """
 shared/notifications.py
 ------------------------
-Servicio centralizado para enviar notificaciones por los tres canales:
-  1. SMS    → AWS SNS (Simple Notification Service)
-  2. Email  → AWS SES (Simple Email Service) → tu Gmail
-  3. Discord → Webhook directo
+Centralized service to send notifications across the three channels:
+  1. SMS     -> AWS SNS (Simple Notification Service)
+  2. Email   -> AWS SES (Simple Email Service) -> your Gmail
+  3. Discord -> Direct webhook
 
-Todos los métodos retornan True/False para que el Reporter Agent
-pueda loggear si algún canal falló sin detener la ejecución.
+Every method returns True/False so the Reporter Agent can log whether a
+channel failed without stopping execution.
 """
 
 import json

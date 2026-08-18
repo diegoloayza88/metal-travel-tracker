@@ -1,20 +1,21 @@
 """
 shared/dynamodb_client.py
 -------------------------
-Cliente centralizado para operaciones en DynamoDB.
-Abstrae las operaciones CRUD comunes para que los agentes no interactúen
-directamente con boto3 y el código quede más limpio y testeable.
+Centralized client for DynamoDB operations.
+Abstracts the common CRUD operations so agents don't interact with boto3
+directly, keeping the code cleaner and more testable.
 
-Tablas utilizadas:
-  - metal-concerts-{env}    → Conciertos encontrados por los plugins
-  - metal-flights-{env}     → Vuelos encontrados y su histórico de precios
-  - metal-hotels-{env}      → Opciones de alojamiento
-  - metal-deals-{env}       → Deals finales que fueron notificados
+Tables used:
+  - metal-travel-tracker-{env}-concerts       -> Concerts found by the plugins,
+                                                  plus user preferences (watchlist)
+                                                  and the festival lineup cache
+  - metal-travel-tracker-{env}-flight-prices  -> Flight prices found and their history
+  - metal-travel-tracker-{env}-notified-deals -> Dedup tracking for notified deals
 """
 
 import logging
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -210,7 +211,9 @@ class DynamoDBClient:
                     "airline": flight.airline,
                     "departure_date": flight.departure_date.isoformat(),
                     "source": flight.source,
-                    "ttl": int((datetime.utcnow() + timedelta(days=90)).timestamp()),
+                    "ttl": int(
+                        (datetime.now(timezone.utc) + timedelta(days=90)).timestamp()
+                    ),
                 }
             )
             return True
@@ -230,7 +233,9 @@ class DynamoDBClient:
         Returns:
             Lista de precios en USD de los últimos N días.
         """
-        from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
+        from_date = (
+            datetime.now(timezone.utc) - timedelta(days=lookback_days)
+        ).isoformat()
 
         try:
             response = self._table.query(

@@ -1,15 +1,15 @@
 """
 plugins/ticketmaster.py
 -----------------------
-Plugin para la Ticketmaster Discovery API v2.
-Fuente oficial para conciertos de metal en US, México, España, Finlandia y el resto
-de los países mapeados. La API es gratuita (5 000 calls/día, 200/hora).
+Plugin for the Ticketmaster Discovery API v2.
+Official source for metal concerts across all 11 monitored countries. The
+API is free (5,000 calls/day, 200/hour).
 
-Registro gratuito: https://developer-acct.ticketmaster.com/user/register
-Documentación:     https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
+Free registration: https://developer-acct.ticketmaster.com/user/register
+Docs:               https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
 
-Variable de entorno requerida:
-  TICKETMASTER_API_KEY  →  Clave obtenida en developer.ticketmaster.com
+Required environment variable:
+  TICKETMASTER_API_KEY  ->  Key obtained at developer.ticketmaster.com
 """
 
 import asyncio

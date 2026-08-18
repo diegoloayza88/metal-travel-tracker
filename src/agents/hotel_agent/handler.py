@@ -1,19 +1,19 @@
 """
 agents/hotel_agent/handler.py
 ------------------------------
-El Hotel Agent busca alojamiento cercano al venue del concierto usando
-la API Affiliate de Booking.com.
+The Hotel Agent searches for accommodation near the concert venue using
+the Booking.com Affiliate API.
 
-Criterios de búsqueda:
-  - Check-in: 1 día antes del concierto
-  - Check-out: 1 día después del concierto
-  - 1 adulto, 1 habitación
-  - Ordenado por precio (menor primero)
-  - Mínimo rating: 7.0 / 10.0
+Search criteria:
+  - Check-in: 1 day before the concert
+  - Check-out: 1 day after the concert
+  - 1 adult, 1 room
+  - Sorted by price (lowest first)
+  - Minimum rating: 7.0 / 10.0
 
-La API de Booking.com Affiliate requiere aprobación como partner.
-Si no está disponible, se genera un link de búsqueda directo a Booking.com
-con los parámetros correctos como fallback.
+The Booking.com Affiliate API requires partner approval. If it's not
+available, a direct Booking.com search link with the correct parameters
+is generated as a fallback.
 """
 
 import json
