@@ -21,7 +21,8 @@ beautifulsoup4
 python-dateutil==2.9.0
 
 # Para tests
-pytest==8.1.1
+# pytest-asyncio 1.4.0 requiere pytest>=8.4, de ahí el bump desde 8.1.1.
+pytest==8.4.2
 # 0.23.x usa internamente asyncio.iscoroutinefunction/get_event_loop_policy,
 # deprecados en Python 3.14+ (removal planeado en 3.16). Verificado: 1.4.0 es
 # la primera versión sin esas deprecaciones internas (0.24/0.26 aún las
