@@ -117,12 +117,34 @@ jobs:
             const truncated = plan.length > maxLength
               ? plan.substring(0, maxLength) + '\n... (truncado)'
               : plan;
-            github.rest.issues.createComment({
+
+            // Marcador oculto para identificar el comentario del plan entre
+            // pushes sucesivos al PR y actualizarlo en lugar de duplicarlo.
+            const marker = '<!-- terraform-plan-comment -->';
+            const body = `${marker}\n## 📋 Terraform Plan\n\`\`\`\n${truncated}\n\`\`\``;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 📋 Terraform Plan\n\`\`\`\n${truncated}\n\`\`\``
             });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
 
   deploy:
     name: 🚀 Deploy
