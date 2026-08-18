@@ -18,7 +18,7 @@ import asyncio
 import logging
 import os
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import httpx
@@ -405,7 +405,7 @@ class SerpApiEventsPlugin(ConcertSourcePlugin):
           3. Regex sobre cualquier campo de texto del evento
         """
         date_info = event.get("date", {})
-        current_year = datetime.utcnow().year
+        current_year = datetime.now(timezone.utc).year
 
         for raw in [date_info.get("start_date", ""), date_info.get("when", "")]:
             parsed = _try_parse_date(raw, current_year)

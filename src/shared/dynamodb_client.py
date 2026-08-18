@@ -14,7 +14,7 @@ Tablas utilizadas:
 
 import logging
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -210,7 +210,9 @@ class DynamoDBClient:
                     "airline": flight.airline,
                     "departure_date": flight.departure_date.isoformat(),
                     "source": flight.source,
-                    "ttl": int((datetime.utcnow() + timedelta(days=90)).timestamp()),
+                    "ttl": int(
+                        (datetime.now(timezone.utc) + timedelta(days=90)).timestamp()
+                    ),
                 }
             )
             return True
@@ -230,7 +232,9 @@ class DynamoDBClient:
         Returns:
             Lista de precios en USD de los últimos N días.
         """
-        from_date = (datetime.utcnow() - timedelta(days=lookback_days)).isoformat()
+        from_date = (
+            datetime.now(timezone.utc) - timedelta(days=lookback_days)
+        ).isoformat()
 
         try:
             response = self._table.query(

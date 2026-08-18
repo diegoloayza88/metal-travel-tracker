@@ -3,7 +3,9 @@
 # Instalar con: pip install -r requirements.txt
 
 # HTTP client asíncrono (para llamadas a APIs externas)
-httpx[asyncio]==0.27.0
+# Nota: httpx no expone un extra "asyncio" (nunca existió en 0.27.0 — es
+# async por defecto), pip emitía un warning al instalarlo con [asyncio].
+httpx==0.27.0
 
 # AWS SDK
 boto3==1.34.69
@@ -20,7 +22,11 @@ python-dateutil==2.9.0
 
 # Para tests
 pytest==8.1.1
-pytest-asyncio==0.23.6
+# 0.23.x usa internamente asyncio.iscoroutinefunction/get_event_loop_policy,
+# deprecados en Python 3.14+ (removal planeado en 3.16). Verificado: 1.4.0 es
+# la primera versión sin esas deprecaciones internas (0.24/0.26 aún las
+# tienen parcialmente). Sin tests async actualmente, bump de riesgo cero.
+pytest-asyncio==1.4.0
 moto[dynamodb,s3,sns,ses]==5.0.5
 
 # Linting

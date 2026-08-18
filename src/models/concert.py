@@ -6,7 +6,7 @@ Todos los agentes y plugins usan estas mismas clases para garantizar consistenci
 """
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -107,7 +107,7 @@ class Concert:
     festival_name: Optional[str] = None  # Si es parte de un festival
     confidence: float = 1.0  # 0.0 a 1.0, relevante para fuentes Tier 3
     raw_text: Optional[str] = None  # Texto original del mensaje (para debug)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
         # Normalizar el nombre de la banda
@@ -181,7 +181,7 @@ class Flight:
     flight_duration_hours: Optional[float] = None
     stops: int = 0
     concert_ref: Optional[str] = None  # unique_key del concierto asociado
-    found_at: datetime = field(default_factory=datetime.utcnow)
+    found_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def is_good_deal(self) -> bool:
@@ -223,7 +223,7 @@ class Hotel:
     booking_url: str = ""
     distance_to_venue_km: Optional[float] = None
     concert_ref: Optional[str] = None
-    found_at: datetime = field(default_factory=datetime.utcnow)
+    found_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def nights(self) -> int:

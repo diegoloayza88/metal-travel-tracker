@@ -37,7 +37,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import boto3
@@ -431,7 +431,13 @@ Si no hay bandas confirmadas o el lineup no está anunciado, responde:
                 return None
 
             fetched_at = datetime.fromisoformat(item.get("fetched_at", "2000-01-01"))
-            if datetime.utcnow() - fetched_at > timedelta(days=_CACHE_TTL_DAYS):
+            if fetched_at.tzinfo is None:
+                # Compatibilidad con entradas de caché escritas antes de migrar
+                # a datetimes timezone-aware — se asume que ya estaban en UTC.
+                fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - fetched_at > timedelta(
+                days=_CACHE_TTL_DAYS
+            ):
                 return None  # Caché expirada
 
             bands = list(item.get("bands", []))
@@ -448,13 +454,13 @@ Si no hay bandas confirmadas o el lineup no está anunciado, responde:
         try:
             dynamodb = boto3.resource("dynamodb", region_name=self._region)
             table = dynamodb.Table(self._table_name)
-            ttl = int((datetime.utcnow() + timedelta(days=30)).timestamp())
+            ttl = int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp())
             table.put_item(
                 Item={
                     "pk": f"FESTIVAL_CACHE#{festival_name}",
                     "sk": str(year),
                     "bands": bands,
-                    "fetched_at": datetime.utcnow().isoformat(),
+                    "fetched_at": datetime.now(timezone.utc).isoformat(),
                     "ttl": ttl,
                 }
             )
