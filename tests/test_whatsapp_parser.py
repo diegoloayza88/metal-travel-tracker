@@ -214,12 +214,15 @@ class TestProcessMessageWithLLM:
 
     def test_festival_usa_festival_name(self):
         """Para festivales sin banda headliner, usa el nombre del festival."""
+        from datetime import timedelta
+
+        future_date = (date.today() + timedelta(days=90)).isoformat()
         bedrock = self._mock_bedrock(
             {
                 "is_concert_announcement": True,
                 "band_name": None,
                 "festival_name": "Metal Devastation Festival",
-                "event_date": "2026-08-10",
+                "event_date": future_date,
                 "city": "Medellín",
                 "venue": "Parque Norte",
                 "confidence": 0.88,

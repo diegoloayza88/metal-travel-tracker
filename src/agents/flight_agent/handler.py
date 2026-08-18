@@ -46,6 +46,10 @@ COUNTRY_AIRPORTS: dict[str, list[str]] = {
     "MX": ["MEX", "GDL"],  # Ciudad de México, Guadalajara
     "FI": ["HEL"],  # Helsinki
     "ES": ["MAD", "BCN"],  # Madrid, Barcelona
+    "NO": ["OSL"],  # Oslo
+    "DE": ["FRA", "MUC"],  # Frankfurt, Múnich
+    "GR": ["ATH"],  # Atenas
+    "RO": ["OTP"],  # Bucarest
 }
 
 # Días antes del concierto para buscar vuelos (rango de fechas)

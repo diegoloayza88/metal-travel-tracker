@@ -14,8 +14,12 @@ Festivales monitoreados:
   - Maryland Deathfest (EE.UU., mayo/junio)
   - Up the Hammers (Grecia, marzo)
   - Hell's Heroes (EE.UU., enero/febrero)
-  - Underground for the Masses (Colombia)
-  - Candelabrum Metal Fest (Colombia)
+
+Nota: Underground for the Masses (Colombia) y Candelabrum Metal Fest (México)
+se retiraron de este plugin — sus sitios son Facebook/Instagram, que bloquean
+IPs de AWS, así que solo producían placeholders de "lineup por anunciar".
+SerpApiEventsPlugin ya captura estos festivales como conciertos individuales
+con nombre real de bandas (queries con skip_filter=True para CO/MX).
 
 Estrategia:
   1. Hace HTTP GET al sitio oficial de cada festival.
@@ -133,24 +137,9 @@ TRACKED_FESTIVALS: list[FestivalConfig] = [
         duration_days=3,
         approx_ticket_price_usd=110,
     ),
-    FestivalConfig(
-        name="Underground for the Masses",
-        country=Country.COLOMBIA,
-        city="Bogotá",
-        website="https://www.facebook.com/undergroundforthemasses",
-        typical_month=8,
-        duration_days=2,
-        approx_ticket_price_usd=35,
-    ),
-    FestivalConfig(
-        name="Candelabrum Metal Fest",
-        country=Country.MEXICO,
-        city="Ciudad de México",
-        website="https://www.instagram.com/candelabrummetalfest",
-        typical_month=9,
-        duration_days=1,
-        approx_ticket_price_usd=25,
-    ),
+    # Underground for the Masses (CO) y Candelabrum Metal Fest (MX) se retiraron:
+    # ver nota en el docstring del módulo — sus sitios bloquean scraping desde AWS
+    # y SerpApiEventsPlugin ya cubre ambos festivales como conciertos reales.
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────

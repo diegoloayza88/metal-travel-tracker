@@ -118,6 +118,14 @@ def lambda_handler(event: dict, context) -> dict:
     for concert in metal_concerts:
         w_score = prefs.watchlist_score(concert.band_name)
         w_match = w_score > 0
+        if not w_match:
+            # No matchea ninguna banda de la watchlist, pero puede seguir siendo
+            # relevante por género (sección de "Descubrimiento" del reporte).
+            # watchlist_match se mantiene estrictamente ligado a bandas conocidas;
+            # el score parcial solo sirve para priorizar/ordenar descubrimientos.
+            w_score = prefs.genre_hint_score(
+                [g.value for g in concert.genres], text_hint=concert.band_name
+            )
         if not dynamodb.exists(concert.unique_key):
             if dynamodb.save_concert(
                 concert, watchlist_score=w_score, watchlist_match=w_match
@@ -153,11 +161,11 @@ def lambda_handler(event: dict, context) -> dict:
         key=lambda x: float(x.get("watchlist_score", 0)), reverse=True
     )
 
+    # Máximo 8 búsquedas por ejecución (cada llamada tarda ~30s; con cadencia
+    # semanal y timeout de 900s hay margen de sobra para más que antes).
     flight_deals = []
     hotel_deals = []
-    for concert_item in concerts_needing_flights[
-        :5
-    ]:  # Máximo 5 por ejecución (cada llamada tarda ~30s, Lambda tiene 15min)
+    for concert_item in concerts_needing_flights[:8]:
         try:
             flight_result = lambda_client.invoke(
                 FunctionName=os.environ["FLIGHT_AGENT_FUNCTION_NAME"],
@@ -307,72 +315,37 @@ def classify_and_filter(
     prefs: Optional[UserPreferences] = None,
 ) -> list[Concert]:
     """
-    Usa Bedrock para clasificar bandas desconocidas y filtrar las que no son metal.
+    Filtra y deduplica conciertos. Las fuentes activas (ver TRUSTED_SOURCES)
+    ya garantizan contexto de metal en su propio pipeline de recolección, así
+    que se confía en ellas directamente. Solo se usa clasificación por LLM
+    como red de seguridad para fuentes futuras sin ese filtrado previo.
 
-    Para evitar llamadas innecesarias al LLM:
-    1. Primero verifica si el nombre de la banda hace match con keywords obvios de metal
-    2. Solo llama al LLM para bandas ambiguas
+    prefs se mantiene en la firma para futuras extensiones (ej. filtrado
+    adicional basado en preferencias del usuario).
     """
+    # Fuentes cuyo propio pipeline de recolección ya garantiza contexto de metal,
+    # por lo que confiamos en ellas directamente sin pasar por el LLM:
+    #   - serpapi_events: la query de búsqueda ya filtra por metal, y el título
+    #     del evento no es un nombre de banda (el LLM no puede clasificarlo).
+    #   - ticketmaster: cada request ya usa classificationName=metal server-side.
+    #   - festivals: solo scrapea 9 festivales de metal curados a mano; toda
+    #     banda extraída de su lineup oficial es, por definición, de metal.
+    # Re-clasificar estas fuentes con un LLM solo agrega riesgo de que bandas
+    # underground legítimas (el objetivo mismo de este proyecto) se descarten
+    # por "no estoy seguro" — sin aportar precisión real, porque la fuente ya
+    # filtró por metal antes de llegar aquí.
+    TRUSTED_SOURCES = {"serpapi_events", "ticketmaster", "festivals"}
+
     classified = []
     uncertain_bands = []
 
     for concert in concerts:
-        # SerpAPI: el título del evento no es el nombre de la banda, por lo que el LLM
-        # no puede clasificarlo correctamente ("Concierto Metal Bogotá" no es una banda).
-        # Confiamos en que la query de búsqueda ya filtró por metal — incluir directamente.
-        if concert.source == "serpapi_events":
+        if concert.source in TRUSTED_SOURCES:
             classified.append(concert)
             continue
 
-        # Si el nombre de la banda o el venue tiene keywords de metal, es obvio
-        band_lower = concert.band_name.lower()
-        obvious_metal_keywords = [
-            "metal",
-            "death",
-            "black",
-            "thrash",
-            "slayer",
-            "sepultura",
-            "obituary",
-            "kreator",
-            "morbid",
-            "cannibal",
-            "napalm",
-            "venom",
-        ]
-        if any(kw in band_lower for kw in obvious_metal_keywords):
-            classified.append(concert)
-            continue
-
-        # Bandas bien conocidas que queremos siempre incluir
-        known_metal_bands = {
-            "metallica",
-            "megadeth",
-            "anthrax",
-            "iron maiden",
-            "judas priest",
-            "motörhead",
-            "motorhead",
-            "accept",
-            "dio",
-            "exodus",
-            "testament",
-            "overkill",
-            "destruction",
-            "sodom",
-            "watain",
-            "behemoth",
-            "mgła",
-        }
-        # Agregar watchlist del usuario (siempre son metal por definición)
-        if prefs:
-            for wb in prefs.watchlist_bands:
-                known_metal_bands.add(wb.lower().strip())
-        if band_lower in known_metal_bands:
-            classified.append(concert)
-            continue
-
-        # Banda ambigua → clasificar con LLM (en lote para eficiencia)
+        # Fuente desconocida/futura sin garantía de filtrado por metal →
+        # clasificar con LLM en lote como red de seguridad.
         uncertain_bands.append(concert)
 
     # Clasificar bandas inciertas en lotes de 10
