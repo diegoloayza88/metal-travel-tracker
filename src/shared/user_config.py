@@ -59,6 +59,42 @@ DEFAULT_WATCHLIST: list[str] = [
     "Messiah",
     # Thrash / Clásicos
     "Slayer",
+    # ── Ampliación: bandas del mismo circuito con más presencia en gira ──
+    # Black Metal — clásicos y activos en festivales/gira mundial
+    "Mayhem",
+    "Immortal",
+    "Dimmu Borgir",
+    "Dark Funeral",
+    "Marduk",
+    "Gorgoroth",
+    "Watain",
+    "Enslaved",
+    "Carpathian Forest",
+    "Taake",
+    "1349",
+    "Satyricon",
+    "Deathspell Omega",
+    "Wolves In The Throne Room",
+    # War Metal / bestial — underground pero con giras activas
+    "Archgoat",
+    "Blasphemy",
+    "Conqueror",
+    "Impiety",
+    "Proclamation",
+    # Death Metal old-school / cavernoso — underground con giras activas
+    "Autopsy",
+    "Undergang",
+    "Gatecreeper",
+    "Cruciamentum",
+    "Dead Congregation",
+    "Tomb Mold",
+    # Thrash clásico — giras de aniversario/despedida con alcance global
+    "Kreator",
+    "Sodom",
+    "Destruction",
+    "Sepultura",
+    "Exodus",
+    "Death Angel",
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -116,6 +152,20 @@ BUY_WINDOW_FLIGHTS: dict[str, str] = {
     "RO": "10-16 semanas antes",
 }
 
+# Heurística de texto para inferir género cuando no hay genres[] estructurados
+# (frecuente en fuentes tipo SerpAPI, donde el título del evento ya suele
+# nombrar el género explícitamente, ej. "Bizarre Death Thrash Fest").
+_GENRE_TEXT_HINTS: dict[str, str] = {
+    "black metal": "black_metal",
+    "black death": "black_metal",
+    "war metal": "war_metal",
+    "bestial": "war_metal",
+    "death metal": "death_metal",
+    "grind": "death_metal",
+    "doom": "death_metal",
+    "thrash": "thrash_metal",
+}
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Modelo
@@ -133,7 +183,12 @@ class UserPreferences:
     budget_flight_max_usd: int = 2000
     budget_trip_max_usd: int = 3500
     preferred_genres: list[str] = field(
-        default_factory=lambda: ["black_metal", "death_metal", "war_metal"]
+        default_factory=lambda: [
+            "black_metal",
+            "death_metal",
+            "war_metal",
+            "thrash_metal",
+        ]
     )
 
     # ── Watchlist matching ──────────────────────────────────────────────
@@ -165,6 +220,35 @@ class UserPreferences:
                 return 10.0
             if len(watched) >= 4 and (watched in band_lower or band_lower in watched):
                 return 8.0
+        return 0.0
+
+    # ── Descubrimiento por género (para conciertos sin match de banda) ─
+
+    def genre_hint_score(self, genres: list[str], text_hint: str = "") -> float:
+        """
+        Score parcial (no un match de banda) cuando el concierto NO está en la
+        watchlist pero pertenece a uno de los géneros preferidos del usuario.
+        Se usa para la sección de "Descubrimiento" del reporte — nunca marca
+        watchlist_match=True, solo aporta una señal de relevancia para ordenar
+        y priorizar sin depender de que la banda ya sea conocida por el usuario.
+
+        1. Si el concierto trae genres[] estructurados (ej. de Ticketmaster) y
+           intersectan con preferred_genres → 5.0
+        2. Si no, heurística de texto sobre el título/nombre del evento (útil
+           para fuentes como SerpAPI, donde el título suele nombrar el género
+           explícitamente, ej. "Bizarre Death Thrash Fest") → 4.0
+        """
+        preferred = {g.lower() for g in self.preferred_genres}
+
+        combined_genres = {g.lower() for g in genres}
+        if combined_genres & preferred:
+            return 5.0
+
+        text_lower = text_hint.lower()
+        for keyword, genre in _GENRE_TEXT_HINTS.items():
+            if keyword in text_lower and genre in preferred:
+                return 4.0
+
         return 0.0
 
     # ── Estimaciones de presupuesto ─────────────────────────────────────
@@ -239,7 +323,8 @@ def load_user_preferences() -> UserPreferences:
             budget_trip_max_usd=int(item.get("budget_trip_max_usd", 3500)),
             preferred_genres=list(
                 item.get(
-                    "preferred_genres", ["black_metal", "death_metal", "war_metal"]
+                    "preferred_genres",
+                    ["black_metal", "death_metal", "war_metal", "thrash_metal"],
                 )
             ),
         )
