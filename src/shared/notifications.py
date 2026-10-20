@@ -13,6 +13,8 @@ channel failed without stopping execution.
 import json
 import logging
 import os
+import time
+import urllib.error
 import urllib.request
 from typing import Optional
 
@@ -184,6 +186,20 @@ class NotificationService:
             logger.warning("Discord: DISCORD_WEBHOOK_URL no configurado, saltando")
             return False
 
+        # Un reporte largo se envía en varios mensajes seguidos: si Discord
+        # responde 429 (rate limit), se espera lo que indica y se reintenta.
+        for attempt in range(3):
+            result = self._post_discord(payload)
+            if result is True or result is False:
+                return result
+            wait_seconds = min(result, 10.0)
+            logger.info(f"Discord rate limit, reintentando en {wait_seconds:.1f}s")
+            time.sleep(wait_seconds)
+        logger.error("Discord: rate limit persistente, mensaje no enviado")
+        return False
+
+    def _post_discord(self, payload: dict) -> bool | float:
+        """POST al webhook. Retorna True/False, o segundos a esperar si hubo 429."""
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -206,6 +222,11 @@ class NotificationService:
                     return False
 
         except urllib.error.HTTPError as e:
+            if e.code == 429:
+                try:
+                    return float(json.loads(e.read().decode("utf-8"))["retry_after"])
+                except Exception:
+                    return 1.0
             logger.error(f"Discord HTTP error {e.code}: {e.reason}")
             # Log del body para debugging
             try:

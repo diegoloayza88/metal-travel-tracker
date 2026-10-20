@@ -196,8 +196,10 @@ def lambda_handler(event: dict, context) -> dict:
     )
 
     # Discord (reporte formateado para Discord)
-    discord_message = build_discord_message(report_text, flight_deals, report_date)
-    results["discord"] = notifier.send_discord(discord_message)
+    # Discord limita cada embed a 4096 caracteres: el reporte se envía partido
+    # en varios mensajes consecutivos en vez de truncarse.
+    discord_messages = build_discord_messages(report_text, flight_deals, report_date)
+    results["discord"] = all(notifier.send_discord(msg) for msg in discord_messages)
 
     logger.info(f"Notificaciones enviadas: {results}")
 
@@ -475,7 +477,10 @@ Estructura:
         report = bedrock.invoke(
             prompt=prompt,
             system_prompt=system_prompt,
-            max_tokens=2800,
+            # Un reporte semanal de ~2200 palabras en español son ~3500 tokens;
+            # con 2800 la respuesta se cortaba a media frase (todos los reportes
+            # salían con ~7000 caracteres exactos). 8000 deja margen de sobra.
+            max_tokens=8000,
             temperature=0.4,
         )
         return report
@@ -557,12 +562,41 @@ def build_email_subject(
         return f"🤘 Metal Travel Tracker — Reporte {report_date}"
 
 
-def build_discord_message(
-    report_text: str, flight_deals: list[dict], report_date: str
-) -> dict:
+DISCORD_EMBED_DESCRIPTION_LIMIT = 4000  # Límite real: 4096 (margen para el sufijo)
+
+
+def split_text(text: str, limit: int) -> list[str]:
     """
-    Construye el payload del webhook de Discord con embeds.
-    Discord soporta Markdown y embeds con color.
+    Parte un texto en trozos de como máximo `limit` caracteres sin cortar
+    párrafos ni líneas, salvo que una sola línea exceda el límite.
+    """
+    chunks: list[str] = []
+    current = ""
+    for line in text.split("\n"):
+        while len(line) > limit:  # Línea gigante: corte duro inevitable
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.append(line[:limit])
+            line = line[limit:]
+        candidate = f"{current}\n{line}" if current else line
+        if len(candidate) > limit:
+            chunks.append(current)
+            current = line
+        else:
+            current = candidate
+    if current.strip():
+        chunks.append(current)
+    return [c for c in chunks if c.strip()]
+
+
+def build_discord_messages(
+    report_text: str, flight_deals: list[dict], report_date: str
+) -> list[dict]:
+    """
+    Construye uno o más payloads de webhook de Discord con embeds.
+    El reporte completo se reparte entre mensajes consecutivos (Discord limita
+    cada embed a 4096 caracteres y cada mensaje a 6000 en total).
     """
     # Color del embed según calidad del mejor deal
     embed_color = 0x808080  # Gris por defecto
@@ -575,26 +609,35 @@ def build_discord_message(
         elif best_quality == "FAIR":
             embed_color = 0xFFCC00  # Amarillo para FAIR
 
-    # Discord tiene límite de 4096 chars por embed description
-    description = report_text[:4000] if len(report_text) > 4000 else report_text
+    chunks = split_text(report_text, DISCORD_EMBED_DESCRIPTION_LIMIT) or [
+        "Sin contenido"
+    ]
+    total = len(chunks)
 
-    payload = {
-        "username": "Metal Travel Tracker 🤘",
-        "avatar_url": "https://i.imgur.com/metal_placeholder.png",
-        "embeds": [
+    messages = []
+    for i, chunk in enumerate(chunks, start=1):
+        title = f"🤘 Metal Travel Report — {report_date}"
+        if total > 1:
+            title += f" ({i}/{total})"
+        embed = {
+            "title": title,
+            "description": chunk,
+            "color": embed_color,
+        }
+        if i == total:
+            embed["footer"] = {"text": "Metal Travel Tracker • Lima, Perú → El mundo"}
+        messages.append(
             {
-                "title": f"🤘 Metal Travel Report — {report_date}",
-                "description": description,
-                "color": embed_color,
-                "footer": {"text": "Metal Travel Tracker • Lima, Perú → El mundo"},
+                "username": "Metal Travel Tracker 🤘",
+                "embeds": [embed],
             }
-        ],
-    }
+        )
 
-    # Agregar fields individuales para cada deal (más visual en Discord)
+    # Deals de vuelo como fields en un mensaje aparte, para no superar el
+    # límite de 6000 caracteres por mensaje junto con la descripción.
     if flight_deals:
         fields = []
-        for deal in flight_deals[:3]:  # Máximo 3 deals como fields
+        for deal in flight_deals[:3]:
             fields.append(
                 {
                     "name": f"✈️ LIM → {deal.get('destination')} | {deal.get('deal_quality')}",
@@ -608,33 +651,92 @@ def build_discord_message(
                     "inline": False,
                 }
             )
-        payload["embeds"][0]["fields"] = fields
+        messages.append(
+            {
+                "username": "Metal Travel Tracker 🤘",
+                "embeds": [
+                    {
+                        "title": "✈️ Mejores deals de vuelo",
+                        "color": embed_color,
+                        "fields": fields,
+                    }
+                ],
+            }
+        )
 
-    return payload
+    return messages
+
+
+def _inline_markdown(text: str) -> str:
+    """Bold, itálicas y links sobre texto ya escapado."""
+    import re
+
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<em>\1</em>", text)
+    # [texto](url)
+    text = re.sub(
+        r"\[([^\]]+)\]\((https?://[^)\s]+)\)",
+        r'<a href="\2" style="color:#ff6b6b;">\1</a>',
+        text,
+    )
+    # URLs sueltas que no estén ya dentro de un href
+    text = re.sub(
+        r'(?<!href=")(?<!">)(https?://[^\s<]+)',
+        r'<a href="\1" style="color:#ff6b6b;">\1</a>',
+        text,
+    )
+    return text
 
 
 def markdown_to_html(text: str) -> str:
     """
-    Conversión básica de Markdown a HTML para el email.
-    Para producción considera usar la librería `markdown` de Python.
+    Convierte el Markdown que genera el LLM (títulos #-###, listas, negritas,
+    links, separadores) a HTML para el email. Escapa el HTML del texto antes
+    de convertir, para que caracteres como < o & no rompan el correo.
     """
+    import html as html_lib
     import re
 
-    html = text
-    # Headers
-    html = re.sub(r"^## (.+)$", r"<h2>\1</h2>", html, flags=re.MULTILINE)
-    html = re.sub(r"^# (.+)$", r"<h1>\1</h1>", html, flags=re.MULTILINE)
-    # Bold
-    html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
-    # Saltos de línea
-    html = html.replace("\n", "<br>\n")
-    return f"""
-    <html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background: #1a1a1a; color: #f0f0f0; padding: 20px; border-radius: 8px;">
-    {html}
-    </div>
-    <p style="color: #666; font-size: 12px; margin-top: 20px;">
-    Metal Travel Tracker • Lima, Perú → El mundo 🤘
-    </p>
-    </body></html>
-    """
+    out: list[str] = []
+    in_list = False
+    for raw_line in text.split("\n"):
+        line = html_lib.escape(raw_line.rstrip(), quote=False)
+        stripped = line.strip()
+
+        is_item = re.match(r"^[-*•]\s+(.+)", stripped)
+        if in_list and not is_item:
+            out.append("</ul>")
+            in_list = False
+
+        heading = re.match(r"^(#{1,3})\s+(.+)", stripped)
+        if heading:
+            level = len(heading.group(1))
+            out.append(
+                f"<h{level} style='color:#ff6b6b;margin:18px 0 8px;'>"
+                f"{_inline_markdown(heading.group(2))}</h{level}>"
+            )
+        elif is_item:
+            if not in_list:
+                out.append("<ul style='padding-left:20px;margin:6px 0;'>")
+                in_list = True
+            out.append(
+                f"<li style='margin:4px 0;'>{_inline_markdown(is_item.group(1))}</li>"
+            )
+        elif re.match(r"^(-{3,}|\*{3,}|_{3,})$", stripped):
+            out.append("<hr style='border:0;border-top:1px solid #444;margin:16px 0;'>")
+        elif not stripped:
+            out.append("<br>")
+        else:
+            out.append(f"<p style='margin:6px 0;'>{_inline_markdown(line)}</p>")
+    if in_list:
+        out.append("</ul>")
+
+    body = "\n".join(out)
+    return f"""<html><body style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px;">
+<div style="background: #1a1a1a; color: #f0f0f0; padding: 20px; border-radius: 8px; line-height: 1.5;">
+{body}
+</div>
+<p style="color: #666; font-size: 12px; margin-top: 20px;">
+Metal Travel Tracker • Lima, Perú → El mundo 🤘
+</p>
+</body></html>"""

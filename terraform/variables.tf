@@ -146,7 +146,13 @@ variable "lambda_memory_mb" {
 # ---- Bedrock -----------------------------------------------------------------
 
 variable "bedrock_model_id" {
-  description = "Bedrock model ID to use (cross-region inference profile recommended)"
+  description = "Primary Bedrock model (cross-region inference profile ID, us.anthropic.*)"
+  type        = string
+  default     = "us.anthropic.claude-opus-5-5"
+}
+
+variable "bedrock_fallback_model_id" {
+  description = "Model used when the account has no access to the primary one (e.g. quota 0)"
   type        = string
   default     = "us.anthropic.claude-sonnet-4-6"
 }
