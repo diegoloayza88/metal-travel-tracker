@@ -6,6 +6,13 @@
 locals {
   prefix = "${var.project_name}-${var.environment}"
 
+  # Every Bedrock model the Lambdas may invoke (primary, fallback, Haiku)
+  bedrock_models = distinct([
+    var.bedrock_model_id,
+    var.bedrock_fallback_model_id,
+    "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  ])
+
   # Common environment variables for all Lambdas
   common_env_vars = {
     ENVIRONMENT                  = var.environment
@@ -13,6 +20,7 @@ locals {
     DYNAMODB_TABLE_CONCERTS      = aws_dynamodb_table.concerts.name
     DYNAMODB_TABLE_FLIGHTS       = aws_dynamodb_table.flight_prices.name
     BEDROCK_MODEL_ID             = var.bedrock_model_id
+    BEDROCK_FALLBACK_MODEL_ID    = var.bedrock_fallback_model_id
     DISCORD_WEBHOOK_URL          = var.discord_webhook_url
     SNS_PHONE_NUMBER             = var.notification_phone_number
     SES_FROM_EMAIL               = var.notification_email_from

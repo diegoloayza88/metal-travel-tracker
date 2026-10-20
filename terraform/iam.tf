@@ -137,14 +137,15 @@ resource "aws_iam_policy" "bedrock_access" {
         "bedrock:InvokeModel",
         "bedrock:InvokeModelWithResponseStream",
       ]
-      Resource = [
-        # Cross-region inference profiles (required for us.anthropic.* model IDs)
-        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/us.anthropic.claude-sonnet-4-6",
-        "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0",
-        # Underlying foundation models (needed for cross-region routing)
-        "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6",
-        "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
-      ]
+      # Derived from the model variables so switching models never requires
+      # touching this policy. Each us.* inference profile routes to the
+      # underlying foundation model (same ID without the "us." prefix).
+      Resource = flatten([
+        for model in local.bedrock_models : [
+          "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${model}",
+          "arn:aws:bedrock:*::foundation-model/${trimprefix(model, "us.")}",
+        ]
+      ])
     }]
   })
 }

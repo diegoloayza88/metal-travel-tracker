@@ -4,11 +4,15 @@ shared/bedrock_client.py
 Centralized client for interacting with Amazon Bedrock.
 Every agent uses this client instead of instantiating boto3 directly.
 
-Models available on Bedrock (cross-region inference profiles, "us." prefix):
-  - us.anthropic.claude-sonnet-4-6              -> What we use (latest available model)
+Models (cross-region inference profiles, "us." prefix):
+  - us.anthropic.claude-opus-5-5               -> Primary (BEDROCK_MODEL_ID)
+  - us.anthropic.claude-sonnet-4-6              -> Fallback (BEDROCK_FALLBACK_MODEL_ID)
   - us.anthropic.claude-haiku-4-5-20251001-v1:0  -> Faster and cheaper (simple classifications)
 
-The main model can be overridden via the BEDROCK_MODEL_ID environment variable.
+If the primary model is not usable by the account (AccessDenied, e.g. its
+on-demand quota is 0), the client switches to the fallback model and keeps
+using it for the rest of the Lambda container's lifetime. Once AWS enables the
+primary model, new containers pick it up automatically with no redeploy.
 """
 
 import json
@@ -17,13 +21,23 @@ import os
 from typing import Optional
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
 # Modelos disponibles como constantes para fácil referencia
+MODEL_OPUS = "us.anthropic.claude-opus-5-5"
 MODEL_SONNET = "us.anthropic.claude-sonnet-4-6"
 MODEL_HAIKU = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+# Errores de Bedrock que indican "este modelo no está disponible para la cuenta"
+# (no un fallo transitorio): justifican pasar al modelo de fallback.
+_MODEL_UNAVAILABLE_ERRORS = {"AccessDeniedException", "ResourceNotFoundException"}
+
+# Modelos que ya fallaron por acceso en este contenedor de Lambda; se evita
+# reintentarlos en cada llamada (un reporte hace varias invocaciones).
+_unavailable_models: set[str] = set()
 
 
 class BedrockClient:
@@ -44,12 +58,76 @@ class BedrockClient:
     def __init__(
         self,
         region: Optional[str] = None,
-        model_id: str = MODEL_SONNET,
+        model_id: Optional[str] = None,
     ):
         self._region = region or os.environ.get("AWS_REGION", "us-east-1")
-        # Allow overriding the model via env var (set by Terraform via bedrock_model_id variable)
-        self._model_id = os.environ.get("BEDROCK_MODEL_ID", model_id)
-        self._client = boto3.client("bedrock-runtime", region_name=self._region)
+        # Un model_id explícito (ej. Haiku) manda; si no, el de Terraform.
+        self._model_id = model_id or os.environ.get("BEDROCK_MODEL_ID", MODEL_OPUS)
+        self._fallback_model_id = os.environ.get(
+            "BEDROCK_FALLBACK_MODEL_ID", MODEL_SONNET
+        )
+        # boto3 corta la lectura a los 60s por defecto, y un reporte semanal
+        # completo (~3500+ tokens de salida) tarda más que eso en generarse.
+        # La Lambda tiene 900s de timeout, así que 300s por llamada es seguro.
+        self._client = boto3.client(
+            "bedrock-runtime",
+            region_name=self._region,
+            config=Config(
+                read_timeout=300,
+                connect_timeout=10,
+                retries={"max_attempts": 3, "mode": "adaptive"},
+            ),
+        )
+        # Razón de corte de la última respuesta ("end_turn", "max_tokens", ...)
+        self.last_stop_reason: Optional[str] = None
+
+    def _candidate_models(self) -> list[str]:
+        models = [self._model_id]
+        if self._fallback_model_id and self._fallback_model_id != self._model_id:
+            models.append(self._fallback_model_id)
+        available = [m for m in models if m not in _unavailable_models]
+        # Si todos fallaron antes, igual se reintenta el último en vez de no hacer nada.
+        return available or models[-1:]
+
+    def _invoke_body(self, body: dict) -> dict:
+        """
+        Invoca Bedrock con el modelo primario y, si la cuenta no tiene acceso
+        a él, con el de fallback. Retorna el body JSON de la respuesta.
+        """
+        candidates = self._candidate_models()
+        for i, model_id in enumerate(candidates):
+            try:
+                response = self._client.invoke_model(
+                    modelId=model_id,
+                    body=json.dumps(body),
+                    contentType="application/json",
+                    accept="application/json",
+                )
+                return json.loads(response["body"].read())
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                is_last = i == len(candidates) - 1
+                if error_code in _MODEL_UNAVAILABLE_ERRORS and not is_last:
+                    _unavailable_models.add(model_id)
+                    logger.warning(
+                        f"Modelo {model_id} no disponible para la cuenta "
+                        f"({error_code}); usando fallback {candidates[i + 1]}"
+                    )
+                    continue
+                raise
+        raise BedrockInvocationError("Sin modelos candidatos")  # pragma: no cover
+
+    def _extract_text(self, response_body: dict) -> str:
+        self.last_stop_reason = response_body.get("stop_reason")
+        if self.last_stop_reason == "max_tokens":
+            logger.warning(
+                "Respuesta de Bedrock cortada por max_tokens — el texto está incompleto"
+            )
+        content = response_body.get("content", [])
+        if not content:
+            logger.warning("Bedrock retornó respuesta vacía")
+            return ""
+        return content[0].get("text", "")
 
     # -------------------------------------------------------------------
     # Metodo principal de invocación
@@ -88,21 +166,7 @@ class BedrockClient:
             body["system"] = system_prompt
 
         try:
-            response = self._client.invoke_model(
-                modelId=self._model_id,
-                body=json.dumps(body),
-                contentType="application/json",
-                accept="application/json",
-            )
-
-            response_body = json.loads(response["body"].read())
-            content = response_body.get("content", [])
-
-            if not content:
-                logger.warning("Bedrock retornó respuesta vacía")
-                return ""
-
-            return content[0].get("text", "")
+            return self._extract_text(self._invoke_body(body))
 
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
@@ -143,17 +207,7 @@ class BedrockClient:
             body["system"] = system_prompt
 
         try:
-            response = self._client.invoke_model(
-                modelId=self._model_id,
-                body=json.dumps(body),
-                contentType="application/json",
-                accept="application/json",
-            )
-
-            response_body = json.loads(response["body"].read())
-            content = response_body.get("content", [])
-
-            return content[0].get("text", "") if content else ""
+            return self._extract_text(self._invoke_body(body))
 
         except Exception as e:
             logger.error(f"Error en invoke_with_conversation: {e}")
